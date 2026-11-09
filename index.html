@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>אצטדיון האותיות</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="אצטדיון האותיות">
+<meta name="theme-color" content="#0d3b27">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Heebo:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pitch:#0d3b27; --pitch2:#11482f; --line:rgba(255,255,255,.85);
+  --gold:#ffd60a; --red:#ff4d4d; --ok:#2ee66b; --card:#fff; --ink:#0d2a1c;
+  --sat:env(safe-area-inset-top,0px); --sar:env(safe-area-inset-right,0px);
+  --sab:env(safe-area-inset-bottom,0px); --sal:env(safe-area-inset-left,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;overscroll-behavior:none;background:var(--pitch)}
+body{
+  font-family:'Heebo','Fredoka',system-ui,sans-serif;color:#fff;
+  touch-action:manipulation;-webkit-text-size-adjust:100%;
+  background:repeating-linear-gradient(90deg,var(--pitch) 0 48px,var(--pitch2) 48px 96px);
+  position:fixed;inset:0;overflow:hidden;
+}
+button,.card,.opt{
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  touch-action:manipulation;font-family:inherit;
+}
+input,select,textarea{font-size:16px;font-family:inherit;touch-action:manipulation}
+.screen{
+  position:absolute;inset:0;display:none;flex-direction:column;
+  padding:calc(var(--sat) + 14px) calc(var(--sar) + 16px) calc(var(--sab) + 16px) calc(var(--sal) + 16px);
+  overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;
+}
+.screen.on{display:flex}
+h1{font-family:'Fredoka','Heebo',sans-serif;font-weight:700;margin:6px 0;text-align:center;font-size:34px;text-shadow:0 3px 0 rgba(0,0,0,.35)}
+h2{margin:10px 0;font-size:22px}
+.sub{text-align:center;opacity:.9;margin:0 0 14px}
+.btn{
+  display:block;width:100%;border:0;border-radius:20px;padding:16px;font-size:20px;font-weight:900;
+  color:var(--ink);background:var(--gold);box-shadow:0 6px 0 #b39500;margin:10px 0;cursor:pointer;
+}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #b39500}
+.btn.green{background:var(--ok);box-shadow:0 6px 0 #1aa84c}
+.btn.green:active{box-shadow:0 2px 0 #1aa84c}
+.btn.ghost{background:rgba(255,255,255,.16);color:#fff;box-shadow:none;border:2px solid rgba(255,255,255,.4)}
+.btn.small{display:inline-block;width:auto;padding:10px 16px;font-size:16px;margin:4px}
+.btn.danger{background:var(--red);color:#fff;box-shadow:0 4px 0 #a02020}
+.stats{display:flex;gap:10px;margin:8px 0 14px}
+.stat{flex:1;background:rgba(0,0,0,.3);border-radius:16px;padding:10px;text-align:center}
+.stat b{display:block;font-size:26px;color:var(--gold);font-family:'Fredoka',sans-serif}
+.stat span{font-size:13px;opacity:.85}
+.ball{font-size:64px;text-align:center;line-height:1}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.top .btn{margin:0;width:auto;padding:8px 14px;font-size:16px}
+.scoreboard{background:#000;border:3px solid #555;border-radius:12px;padding:6px 14px;font-family:'Fredoka',sans-serif;font-size:22px;color:var(--gold);letter-spacing:1px;direction:ltr}
+.goal{
+  position:relative;height:120px;margin:6px 0 12px;border:4px solid #fff;border-bottom:0;border-radius:10px 10px 0 0;
+  background:repeating-linear-gradient(45deg,rgba(255,255,255,.14) 0 6px,transparent 6px 12px),
+             repeating-linear-gradient(-45deg,rgba(255,255,255,.14) 0 6px,transparent 6px 12px);
+  overflow:hidden;
+}
+.goal .gk{position:absolute;bottom:0;left:50%;font-size:56px;transform:translateX(-50%);transition:transform .35s}
+.goal .shot{position:absolute;bottom:-10px;left:50%;font-size:40px;transform:translateX(-50%);transition:all .5s cubic-bezier(.2,.8,.3,1)}
+.prompt{
+  background:var(--card);color:var(--ink);border-radius:24px;padding:14px;text-align:center;margin-bottom:12px;
+  min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+}
+.prompt .big{font-family:'Fredoka',sans-serif;font-weight:700;font-size:84px;line-height:1}
+.prompt .pic{font-size:84px;line-height:1}
+.prompt img{max-height:120px;max-width:100%;border-radius:14px;object-fit:contain}
+.prompt .hint{font-size:17px;font-weight:700;direction:rtl}
+.speak{border:0;background:var(--pitch);color:#fff;border-radius:50%;width:52px;height:52px;font-size:26px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;direction:ltr}
+.opt{
+  background:#fff;color:var(--ink);border:0;border-radius:22px;padding:18px 0;font-family:'Fredoka',sans-serif;
+  font-weight:700;font-size:52px;box-shadow:0 6px 0 #b8c4bd;cursor:pointer;
+}
+.opt:active{transform:translateY(4px);box-shadow:0 2px 0 #b8c4bd}
+.opt.good{background:var(--ok);box-shadow:0 6px 0 #1aa84c}
+.opt.bad{background:var(--red);color:#fff;box-shadow:0 6px 0 #a02020}
+.msg{text-align:center;font-size:26px;font-weight:900;min-height:36px;margin:10px 0 0}
+.panel{background:rgba(0,0,0,.28);border-radius:18px;padding:12px;margin:10px 0}
+.letters{display:flex;flex-wrap:wrap;gap:6px;direction:ltr;justify-content:center}
+.letters button{width:44px;height:44px;border-radius:10px;border:2px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-weight:900;font-size:18px}
+.letters button.sel{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.wlist{display:grid;gap:8px}
+.w{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.12);border-radius:14px;padding:8px}
+.w .th{width:44px;height:44px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;overflow:hidden}
+.w .th img{width:100%;height:100%;object-fit:cover}
+.w .nm{flex:1;font-family:'Fredoka',sans-serif;font-size:20px;direction:ltr;text-align:left}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12px;padding:12px;background:#fff;color:var(--ink);direction:ltr}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:24px;z-index:10}
+.modal.on{display:flex}
+.modal .box{background:#fff;color:var(--ink);border-radius:22px;padding:20px;width:100%;max-width:360px;text-align:center}
+.toast{position:fixed;left:50%;bottom:calc(var(--sab) + 24px);transform:translateX(-50%);background:#000c;color:#fff;padding:10px 18px;border-radius:20px;font-weight:700;z-index:20;opacity:0;pointer-events:none;transition:opacity .25s;max-width:90%;text-align:center}
+.toast.on{opacity:1}
+.confetti{position:fixed;top:-20px;font-size:26px;pointer-events:none;animation:fall 1.8s linear forwards;z-index:15}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.parent-link{margin-top:auto;background:none;border:0;color:rgba(255,255,255,.6);font-size:14px;padding:14px}
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<section id="home" class="screen on">
+  <div class="ball">⚽</div>
+  <h1>אצטדיון האותיות</h1>
+  <p class="sub">בואו נשחק ונלמד אותיות באנגלית!</p>
+  <div class="stats">
+    <div class="stat"><b id="stGoals">0</b><span>שערים</span></div>
+    <div class="stat"><b id="stBest">0</b><span>שיא משחק</span></div>
+    <div class="stat"><b id="stStreak">0</b><span>רצף שיא</span></div>
+  </div>
+  <button class="btn green" data-mode="letters">🔊 בעיטה לשער – שמעו ובחרו אות</button>
+  <button class="btn" data-mode="words">🖼️ תמונה ומילה – באיזו אות מתחילה?</button>
+  <button class="parent-link" id="toParents">⚙️ אזור הורים</button>
+</section>
+
+<!-- PLAY -->
+<section id="play" class="screen">
+  <div class="top">
+    <button class="btn ghost" id="quit">✖ יציאה</button>
+    <div class="scoreboard" id="board">⚽ 0 : 0 · 1/10</div>
+  </div>
+  <div class="goal"><div class="gk" id="gk">🧤</div><div class="shot" id="shot">⚽</div></div>
+  <div class="prompt" id="prompt"></div>
+  <div class="opts" id="opts"></div>
+  <div class="msg" id="msg"></div>
+</section>
+
+<!-- RESULT -->
+<section id="result" class="screen">
+  <div class="ball" id="resBall">🏆</div>
+  <h1 id="resTitle"></h1>
+  <p class="sub" id="resText"></p>
+  <button class="btn green" id="again">שחקו שוב</button>
+  <button class="btn ghost" id="resHome">חזרה לאצטדיון</button>
+</section>
+
+<!-- PARENTS -->
+<section id="parents" class="screen">
+  <div class="top"><h1 style="margin:0">אזור הורים</h1><button class="btn ghost" id="pBack">חזרה</button></div>
+
+  <div class="panel">
+    <h2>אותיות פעילות</h2>
+    <div class="letters" id="letterPick"></div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn small ghost" id="lAll">הכל</button>
+      <button class="btn small ghost" id="lNone">נקה</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>מילים</h2>
+    <div class="row">
+      <input type="text" id="wInput" placeholder="word (English)" maxlength="20" autocapitalize="none" autocomplete="off" spellcheck="false">
+      <input type="text" id="wEmoji" placeholder="🙂" maxlength="4" style="max-width:70px;text-align:center">
+    </div>
+    <div class="row" style="margin-top:8px;align-items:center">
+      <label class="btn small ghost" style="margin:4px">📷 תמונה
+        <input type="file" id="wFile" accept="image/*" hidden>
+      </label>
+      <span id="wFileName" style="font-size:14px;opacity:.85"></span>
+      <button class="btn small" id="wAdd" style="margin-inline-start:auto">הוספה</button>
+    </div>
+    <div class="wlist" id="wList" style="margin-top:10px"></div>
+  </div>
+
+  <div class="panel">
+    <h2>גיבוי נתונים</h2>
+    <p style="margin:0 0 8px;font-size:14px;opacity:.9">אפליקציה שמותקנת על המסך הראשי שומרת נתונים בנפרד מ‑Safari. מומלץ לייצא גיבוי לפני שמוחקים את האפליקציה או עוברים למכשיר אחר.</p>
+    <div class="row">
+      <button class="btn small green" id="exp">📤 ייצוא גיבוי</button>
+      <button class="btn small" id="imp">📥 ייבוא גיבוי</button>
+      <input type="file" id="impFile" accept="application/json,.json" hidden>
+    </div>
+    <div class="row" style="margin-top:6px"><button class="btn small danger" id="resetRec">איפוס שיאים</button></div>
+  </div>
+</section>
+
+<!-- Parent gate -->
+<div class="modal" id="gate"><div class="box">
+  <h2 style="margin-top:0">אזור הורים 🔒</h2>
+  <p id="gateQ" style="font-size:24px;font-weight:900;direction:ltr"></p>
+  <input type="number" id="gateA" inputmode="numeric" style="width:100%;text-align:center">
+  <div class="row" style="justify-content:center;margin-top:12px">
+    <button class="btn small" id="gateOk">אישור</button>
+    <button class="btn small ghost" style="color:var(--ink);border-color:#aaa" id="gateNo">ביטול</button>
+  </div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = (id) => document.getElementById(id);
+const KEY = 'letterStadium.v1';
+const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const DEFAULT_WORDS = [
+  ['apple','🍎'],['ball','⚽'],['cat','🐱'],['dog','🐶'],['egg','🥚'],['fish','🐟'],['goat','🐐'],['hat','🎩'],
+  ['ice cream','🍦'],['juice','🧃'],['kite','🪁'],['lion','🦁'],['moon','🌙'],['nose','👃'],['orange','🍊'],
+  ['pizza','🍕'],['queen','👑'],['rabbit','🐰'],['sun','☀️'],['tiger','🐯'],['umbrella','☂️'],['violin','🎻'],
+  ['watch','⌚'],['xylophone','🎹'],['yo-yo','🪀'],['zebra','🦓']
+].map(([word, emoji], i) => ({ id: 'd' + i, word, emoji, img: '' }));
+
+/* ---------- storage ---------- */
+function defaults(){ return { letters: ALPHA.slice(), words: DEFAULT_WORDS.map(w => ({...w})), records: { goals: 0, bestScore: 0, bestStreak: 0, matches: 0 } }; }
+let state = defaults();
+function load(){
+  try { const raw = localStorage.getItem(KEY); if (raw) { const v = sanitize(JSON.parse(raw)); if (v) state = v; } } catch (_) {}
+}
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(state)); }
+  catch (e) { toast('לא ניתן לשמור – ייתכן שהזיכרון מלא'); }
+}
+function num(n){ return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0; }
+// Validates and normalises data from storage or an imported backup. Returns null if invalid.
+function sanitize(d){
+  if (!d || typeof d !== 'object') return null;
+  if (!Array.isArray(d.letters) || !Array.isArray(d.words) || !d.records || typeof d.records !== 'object') return null;
+  const letters = [...new Set(d.letters.filter(l => typeof l === 'string' && /^[A-Za-z]$/.test(l)).map(l => l.toUpperCase()))];
+  const words = [];
+  for (const w of d.words) {
+    if (!w || typeof w.word !== 'string') return null;
+    const word = w.word.trim().slice(0, 20);
+    if (!/^[A-Za-z][A-Za-z '\-]*$/.test(word)) continue;
+    const img = typeof w.img === 'string' && /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(w.img) ? w.img : '';
+    const emoji = typeof w.emoji === 'string' ? w.emoji.slice(0, 8) : '';
+    words.push({ id: typeof w.id === 'string' ? w.id.slice(0, 32) : 'w' + Math.random().toString(36).slice(2), word, emoji, img });
+  }
+  const r = d.records;
+  return { letters, words, records: { goals: num(r.goals), bestScore: num(r.bestScore), bestStreak: num(r.bestStreak), matches: num(r.matches) } };
+}
+
+/* ---------- UI helpers ---------- */
+function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); window.scrollTo(0,0); }
+let toastT;
+function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2600); }
+function shuffle(a){ a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function confetti(){
+  const e = ['⚽','🎉','⭐','🏆','🎊'];
+  for (let i = 0; i < 18; i++) {
+    const s = document.createElement('div'); s.className = 'confetti'; s.textContent = e[i % e.length];
+    s.style.left = Math.random() * 100 + 'vw'; s.style.animationDelay = Math.random() * .4 + 's';
+    document.body.appendChild(s); setTimeout(() => s.remove(), 2400);
+  }
+}
+
+/* ---------- audio: AudioContext + speech (iOS-safe) ---------- */
+let actx = null, voice = null;
+function ensureAudio(){
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx && AC) actx = new AC();
+    if (actx && actx.state !== 'running') actx.resume();
+  } catch (_) {}
+}
+['touchend','pointerdown','click'].forEach(ev => document.addEventListener(ev, ensureAudio, { passive: true }));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) ensureAudio(); });
+
+function pickVoice(){
+  if (!('speechSynthesis' in window)) return;
+  const vs = speechSynthesis.getVoices();
+  voice = vs.find(v => v.lang === 'en-US' && /samantha|nicky|aaron|google us/i.test(v.name))
+       || vs.find(v => v.lang === 'en-US') || vs.find(v => /^en[-_]/i.test(v.lang)) || null;
+}
+if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.addEventListener && speechSynthesis.addEventListener('voiceschanged', pickVoice); }
+function speak(text){
+  if (!('speechSynthesis' in window)) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; if (voice) u.voice = voice; u.rate = .8; u.pitch = 1.1; u.volume = 1;
+    // iOS standalone can leave the synth paused after backgrounding
+    if (speechSynthesis.paused) speechSynthesis.resume();
+    speechSynthesis.speak(u);
+  } catch (_) {}
+}
+function tone(freqs, dur = .12, type = 'triangle'){
+  if (!actx) return;
+  try {
+    let t = actx.currentTime;
+    freqs.forEach(f => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = type; o.frequency.value = f; g.gain.setValueAtTime(.2, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+      o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur); t += dur * .9;
+    });
+  } catch (_) {}
+}
+const sGoal = () => tone([523, 659, 784, 1046]), sMiss = () => tone([220, 165], .2, 'sawtooth');
+
+/* ---------- home ---------- */
+function refreshHome(){
+  $('stGoals').textContent = state.records.goals; $('stBest').textContent = state.records.bestScore; $('stStreak').textContent = state.records.bestStreak;
+}
+document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => startMatch(b.dataset.mode)));
+
+/* ---------- match ---------- */
+const ROUNDS = 10;
+let G = null;
+function startMatch(mode){
+  ensureAudio();
+  const letters = state.letters.length >= 4 ? state.letters : ALPHA;
+  let pool;
+  if (mode === 'words') {
+    pool = state.words.filter(w => letters.includes(w.word[0].toUpperCase()));
+    if (pool.length < 1) { toast('אין מילים שמתאימות לאותיות הפעילות'); return; }
+  } else pool = letters.map(l => ({ letter: l }));
+  G = { mode, letters, pool: shuffle(pool), i: 0, goals: 0, streak: 0, bestStreak: 0, lock: false, rounds: Math.min(ROUNDS, Math.max(pool.length, 1)) };
+  if (mode === 'words' && G.pool.length < ROUNDS) { while (G.pool.length < ROUNDS) G.pool = G.pool.concat(shuffle(pool)); G.rounds = ROUNDS; }
+  show('play'); nextQ();
+}
+function board(){ $('board').textContent = `⚽ ${G.goals} : ${G.i - G.goals} · ${Math.min(G.i + 1, G.rounds)}/${G.rounds}`; }
+function nextQ(){
+  if (G.i >= G.rounds) return finish();
+  G.lock = false; $('msg').textContent = ''; board();
+  const item = G.pool[G.i];
+  const answer = G.mode === 'words' ? item.word[0].toUpperCase() : item.letter;
+  const wrong = shuffle(G.letters.filter(l => l !== answer)).slice(0, 3);
+  while (wrong.length < 3) { const l = ALPHA[Math.random() * 26 | 0]; if (l !== answer && !wrong.includes(l)) wrong.push(l); }
+  G.answer = answer;
+  const p = $('prompt'); p.textContent = '';
+  if (G.mode === 'letters') {
+    const hint = document.createElement('div'); hint.className = 'big'; hint.textContent = '?';
+    const t = document.createElement('div'); t.className = 'hint'; t.textContent = 'איזו אות שמעתם?';
+    const sp = document.createElement('button'); sp.className = 'speak'; sp.textContent = '🔊'; sp.onclick = () => speak(answer);
+    p.append(hint, t, sp); setTimeout(() => speak(answer), 250);
+  } else {
+    if (item.img) { const im = document.createElement('img'); im.alt = ''; im.src = item.img; p.appendChild(im); }
+    else { const e = document.createElement('div'); e.className = 'pic'; e.textContent = item.emoji || '❓'; p.appendChild(e); }
+    const t = document.createElement('div'); t.className = 'hint'; t.textContent = 'באיזו אות מתחילה המילה?';
+    const sp = document.createElement('button'); sp.className = 'speak'; sp.textContent = '🔊'; sp.onclick = () => speak(item.word);
+    p.append(t, sp); setTimeout(() => speak(item.word), 250);
+  }
+  const o = $('opts'); o.textContent = '';
+  shuffle([answer, ...wrong]).forEach(l => {
+    const b = document.createElement('button'); b.className = 'opt'; b.textContent = G.mode === 'letters' && Math.random() < .5 ? l.toLowerCase() : l;
+    b.dataset.l = l; b.onclick = () => pick(b, l); o.appendChild(b);
+  });
+  const shot = $('shot'); shot.style.transition = 'none'; shot.style.bottom = '-10px'; shot.style.left = '50%'; shot.style.fontSize = '40px';
+  $('gk').style.transform = 'translateX(-50%)';
+}
+function pick(btn, l){
+  if (G.lock) return; G.lock = true;
+  const ok = l === G.answer, shot = $('shot'), gk = $('gk');
+  void shot.offsetWidth; shot.style.transition = 'all .5s cubic-bezier(.2,.8,.3,1)';
+  if (ok) {
+    btn.classList.add('good'); G.goals++; G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak);
+    shot.style.bottom = '60px'; shot.style.left = (Math.random() < .5 ? '25%' : '75%'); shot.style.fontSize = '24px';
+    gk.style.transform = 'translateX(' + (shot.style.left === '25%' ? '120%' : '-220%') + ')';
+    $('msg').textContent = 'גוווווול! ⚽🎉'; sGoal(); confetti(); speak(G.answer);
+  } else {
+    btn.classList.add('bad', 'shake'); G.streak = 0;
+    document.querySelectorAll('.opt').forEach(b => { if (b.dataset.l === G.answer) b.classList.add('good'); });
+    shot.style.bottom = '30px'; shot.style.left = '50%'; shot.style.fontSize = '24px'; gk.style.transform = 'translateX(-50%) scale(1.3)';
+    $('msg').textContent = 'השוער תפס! נסו בבעיטה הבאה 🧤'; sMiss();
+  }
+  G.i++; setTimeout(nextQ, ok ? 1500 : 1900);
+}
+function finish(){
+  const r = state.records, prevBest = r.bestScore;
+  r.goals += G.goals; r.matches++; r.bestScore = Math.max(r.bestScore, G.goals); r.bestStreak = Math.max(r.bestStreak, G.bestStreak); save();
+  const rec = G.goals > prevBest && G.goals > 0;
+  $('resBall').textContent = G.goals >= 8 ? '🏆' : G.goals >= 5 ? '🥈' : '⚽';
+  $('resTitle').textContent = rec ? 'שיא חדש! 🎉' : G.goals >= 8 ? 'כוכבים!' : G.goals >= 5 ? 'כל הכבוד!' : 'ממשיכים להתאמן!';
+  $('resText').textContent = `הבקעתם ${G.goals} שערים מתוך ${G.rounds}. רצף הצלחות: ${G.bestStreak}.`;
+  if (G.goals >= 5) { confetti(); sGoal(); }
+  show('result');
+}
+$('quit').onclick = () => { G = null; try { speechSynthesis.cancel(); } catch (_) {} refreshHome(); show('home'); };
+$('again').onclick = () => startMatch(G.mode);
+$('resHome').onclick = () => { refreshHome(); show('home'); };
+
+/* ---------- parents ---------- */
+let gateAns = 0;
+$('toParents').onclick = () => {
+  const a = 3 + (Math.random() * 7 | 0), b = 3 + (Math.random() * 7 | 0); gateAns = a * b;
+  $('gateQ').textContent = `${a} × ${b} = ?`; $('gateA').value = ''; $('gate').classList.add('on');
+  setTimeout(() => $('gateA').focus(), 50);
+};
+$('gateNo').onclick = () => $('gate').classList.remove('on');
+$('gateOk').onclick = () => {
+  if (parseInt($('gateA').value, 10) === gateAns) { $('gate').classList.remove('on'); renderParents(); show('parents'); }
+  else { $('gateA').value = ''; toast('תשובה שגויה'); }
+};
+$('gateA').addEventListener('keydown', e => { if (e.key === 'Enter') $('gateOk').click(); });
+$('pBack').onclick = () => { refreshHome(); show('home'); };
+
+function renderParents(){
+  const lp = $('letterPick'); lp.textContent = '';
+  ALPHA.forEach(l => {
+    const b = document.createElement('button'); b.textContent = l; b.className = state.letters.includes(l) ? 'sel' : '';
+    b.onclick = () => { const i = state.letters.indexOf(l); if (i >= 0) state.letters.splice(i, 1); else state.letters.push(l); b.classList.toggle('sel'); save(); };
+    lp.appendChild(b);
+  });
+  const wl = $('wList'); wl.textContent = '';
+  state.words.forEach(w => {
+    const row = document.createElement('div'); row.className = 'w';
+    const th = document.createElement('div'); th.className = 'th';
+    if (w.img) { const im = document.createElement('img'); im.alt = ''; im.src = w.img; th.appendChild(im); } else th.textContent = w.emoji || '❓';
+    const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = w.word;
+    const del = document.createElement('button'); del.className = 'btn small danger'; del.textContent = '🗑'; del.style.margin = 0;
+    del.onclick = () => { state.words = state.words.filter(x => x.id !== w.id); save(); renderParents(); };
+    row.append(th, nm, del); wl.appendChild(row);
+  });
+}
+$('lAll').onclick = () => { state.letters = ALPHA.slice(); save(); renderParents(); };
+$('lNone').onclick = () => { state.letters = []; save(); renderParents(); };
+
+let pendingImg = '';
+$('wFile').onchange = (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  const url = URL.createObjectURL(f), im = new Image();
+  im.onload = () => {
+    const m = 256, s = Math.min(1, m / Math.max(im.width, im.height)), c = document.createElement('canvas');
+    c.width = Math.round(im.width * s); c.height = Math.round(im.height * s);
+    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+    pendingImg = c.toDataURL('image/jpeg', .8); $('wFileName').textContent = '✓ ' + f.name.slice(0, 18); URL.revokeObjectURL(url);
+  };
+  im.onerror = () => { toast('לא ניתן לקרוא את התמונה'); URL.revokeObjectURL(url); };
+  im.src = url;
+};
+$('wAdd').onclick = () => {
+  const word = $('wInput').value.trim();
+  if (!/^[A-Za-z][A-Za-z '\-]*$/.test(word)) { toast('יש להזין מילה באנגלית'); return; }
+  const emoji = $('wEmoji').value.trim();
+  if (!emoji && !pendingImg) { toast('הוסיפו אימוג׳י או תמונה'); return; }
+  state.words.push({ id: 'w' + Date.now().toString(36), word, emoji, img: pendingImg });
+  pendingImg = ''; $('wInput').value = ''; $('wEmoji').value = ''; $('wFileName').textContent = ''; $('wFile').value = '';
+  save(); renderParents(); toast('המילה נוספה ✓');
+};
+$('resetRec').onclick = () => { if (confirm('לאפס את כל השיאים?')) { state.records = { goals: 0, bestScore: 0, bestStreak: 0, matches: 0 }; save(); refreshHome(); toast('השיאים אופסו'); } };
+
+/* ---------- backup ---------- */
+$('exp').onclick = async () => {
+  const payload = { app: 'letter-stadium', version: 1, exportedAt: new Date().toISOString(), data: state };
+  const text = JSON.stringify(payload);
+  const name = 'letter-stadium-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  const file = new File([text], name, { type: 'application/json' });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'גיבוי אצטדיון האותיות' }); toast('הגיבוי מוכן ✓'); return;
+    }
+  } catch (e) { if (e && e.name === 'AbortError') return; /* otherwise fall through to download */ }
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000); toast('הגיבוי נשמר ✓');
+};
+$('imp').onclick = () => $('impFile').click();
+$('impFile').onchange = async (e) => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    if (f.size > 40 * 1024 * 1024) throw new Error('big');
+    const j = JSON.parse(await f.text());
+    if (!j || j.app !== 'letter-stadium' || typeof j.version !== 'number' || j.version > 1) throw new Error('format');
+    const v = sanitize(j.data); if (!v) throw new Error('data');
+    if (!confirm(`לשחזר גיבוי? ${v.words.length} מילים, ${v.records.goals} שערים. הנתונים הנוכחיים יוחלפו.`)) return;
+    state = v; save(); renderParents(); refreshHome(); toast('הגיבוי שוחזר בהצלחה ✓');
+  } catch (_) { toast('הקובץ אינו גיבוי תקין של המשחק'); }
+};
+
+/* ---------- init ---------- */
+load(); refreshHome();
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+})();
+</script>
+</body>
+</html>
