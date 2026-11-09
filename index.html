@@ -326,6 +326,12 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   </div>
 
   <div class="panel">
+    <h2>🔊 קול האותיות</h2>
+    <p style="margin:0 0 8px;font-size:14px;opacity:.9">לחצו ▶ כדי לשמוע. אם אות נשמעת לא נכון, לחצו 🔁 כדי לנסות כתיב אחר (או הקלידו בעצמכם). השינוי נשמר.</p>
+    <div id="voiceList"></div>
+  </div>
+
+  <div class="panel">
     <h2>🔠 הוספת אות חדשה</h2>
     <p style="margin:0 0 8px;font-size:14px;opacity:.9">כשהיא למדה אות חדשה, הוסיפו אותה כאן. השם והצליל ממולאים אוטומטית ואפשר לשנות.</p>
     <div class="row">
@@ -486,7 +492,7 @@ function sanitize(d){
     .map(p => ({ id: p.id, name: p.name.trim().slice(0, 14), num: p.num, color: p.color }));
   const letterInfo = {};
   if (isObj(d.letterInfo)) for (const L of Object.keys(d.letterInfo)) {
-    const v = d.letterInfo[L]; if (/^[A-Z]$/.test(L) && isObj(v)) letterInfo[L] = { name: String(v.name || '').slice(0, 16), sound: String(v.sound || '').slice(0, 16) };
+    const v = d.letterInfo[L]; if (/^[A-Z]$/.test(L) && isObj(v)) letterInfo[L] = { name: String(v.name || '').slice(0, 16), sound: String(v.sound || '').slice(0, 16), say: String(v.say || '').replace(/[^A-Za-z. ]/g, '').slice(0, 12) };
   }
   const me = typeof d.me === 'string' && players.some(p => p.id === d.me) ? d.me : (players[0] ? players[0].id : '');
   return { ver: num(d.ver), letters, words, cards, players, me, letterInfo,
@@ -571,7 +577,7 @@ function speak(text){
   } catch (_) {}
 }
 // Letters are spoken by name only, spelled phonetically (a bare capital is read by iOS as "capital A").
-const L_NAME = { A:'ay',B:'bee',C:'see',D:'dee',E:'ee',F:'eff',G:'jee',H:'aych',I:'eye',J:'jay',K:'kay',L:'ell',M:'em',N:'en',O:'oh',P:'pee',Q:'cue',R:'are',S:'ess',T:'tee',U:'you',V:'vee',W:'double you',X:'ex',Y:'why',Z:'zee' };
+const L_NAME = { A:'ey',B:'bee',C:'see',D:'dee',E:'ee',F:'eff',G:'jee',H:'aych',I:'eye',J:'jay',K:'kay',L:'ell',M:'em',N:'en',O:'oh',P:'pee',Q:'cue',R:'are',S:'ess',T:'tee',U:'you',V:'vee',W:'double you',X:'ex',Y:'why',Z:'zee' };
 function speakSeq(parts){
   if (!('speechSynthesis' in window)) return;
   try {
@@ -584,7 +590,8 @@ function speakSeq(parts){
     });
   } catch (_) {}
 }
-function speakLetter(l){ l = String(l).toUpperCase(); speakSeq([L_NAME[l] || l.toLowerCase()]); }
+function sayText(l){ l = String(l).toUpperCase(); return (state.letterInfo[l] && state.letterInfo[l].say) || L_NAME[l] || l.toLowerCase(); }
+function speakLetter(l){ speakSeq([sayText(l)]); }
 function speakSound(l){ speakSeq([EN_SOUND[String(l).toUpperCase()] || String(l).toLowerCase()]); }
 function tone(freqs, dur = .12, type = 'triangle'){
   if (!actx) return;
@@ -969,6 +976,7 @@ $('gateA').addEventListener('keydown', e => { if (e.key === 'Enter') $('gateOk')
 $('pBack').onclick = goHome;
 
 function renderParents(){
+  renderVoices();
   const lp = $('letterPick'); lp.textContent = '';
   ALPHA.forEach(l => {
     const b = document.createElement('button'); b.textContent = l; b.className = state.letters.includes(l) ? 'sel' : '';
@@ -986,6 +994,26 @@ function renderParents(){
     row.append(th, nm, del); wl.appendChild(row);
   });
 }
+function sayCandidates(L){
+  const l = L.toLowerCase(), c = [L_NAME[L], l + '.', l, L];
+  if (L === 'A') c.push('eigh', 'ay', 'hey');
+  return [...new Set(c.filter(Boolean))];
+}
+function renderVoices(){
+  const box = $('voiceList'); box.textContent = '';
+  state.letters.slice().sort().forEach(L => {
+    const row = mk('div', 'row'); row.style.cssText = 'align-items:center;margin:6px 0;flex-wrap:nowrap';
+    const lab = mk('b', '', L + l2(L)); lab.style.cssText = 'font-size:22px;min-width:48px;direction:ltr';
+    const inp = document.createElement('input'); inp.type = 'text'; inp.value = sayText(L); inp.maxLength = 12; inp.autocomplete = 'off'; inp.autocapitalize = 'none';
+    const store = (v) => { v = v.replace(/[^A-Za-z. ]/g, '').trim(); state.letterInfo[L] = { ...(state.letterInfo[L] || {}), say: v === L_NAME[L] ? '' : v }; save(); };
+    inp.onchange = () => { store(inp.value); inp.value = sayText(L); };
+    const play = mk('button', 'btn small', '▶'); play.style.margin = '0'; play.onclick = () => { store(inp.value); speakSeq([sayText(L)]); };
+    const cyc = mk('button', 'btn small ghost', '🔁'); cyc.style.margin = '0';
+    cyc.onclick = () => { const cs = sayCandidates(L), i = cs.indexOf(sayText(L)); const nx = cs[(i + 1) % cs.length]; inp.value = nx; store(nx); speakSeq([nx]); };
+    row.append(lab, inp, play, cyc); box.appendChild(row);
+  });
+}
+const l2 = (L) => ' ' + L.toLowerCase();
 $('lAll').onclick = () => { state.letters = ALPHA.slice(); save(); renderParents(); };
 $('lNone').onclick = () => { state.letters = []; save(); renderParents(); };
 
@@ -1023,7 +1051,7 @@ $('nlL').addEventListener('input', () => {
 $('nlAdd').onclick = () => {
   const L = $('nlL').value.trim().toUpperCase();
   if (!/^[A-Z]$/.test(L)) { toast('יש להזין אות אחת באנגלית (A–Z)'); return; }
-  state.letterInfo[L] = { name: $('nlName').value.trim().slice(0, 16) || HEB_NAME[L], sound: $('nlSound').value.trim().slice(0, 16) || HEB_SOUND[L] };
+  state.letterInfo[L] = { ...(state.letterInfo[L] || {}), name: $('nlName').value.trim().slice(0, 16) || HEB_NAME[L], sound: $('nlSound').value.trim().slice(0, 16) || HEB_SOUND[L] };
   if (!state.letters.includes(L)) state.letters.push(L);
   $('nlL').value = $('nlName').value = $('nlSound').value = ''; save(); renderParents(); toast('האות ' + L + ' נוספה ✓');
 };
