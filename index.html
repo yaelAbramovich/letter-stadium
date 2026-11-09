@@ -313,14 +313,15 @@ const ROUNDS = 10;
 let G = null;
 function startMatch(mode){
   ensureAudio();
-  const letters = state.letters.length >= 4 ? state.letters : ALPHA;
+  const letters = state.letters.slice();
+  if (letters.length < 2) { toast('יש לבחור לפחות 2 אותיות באזור ההורים'); return; }
   let pool;
   if (mode === 'words') {
     pool = state.words.filter(w => letters.includes(w.word[0].toUpperCase()));
     if (pool.length < 1) { toast('אין מילים שמתאימות לאותיות הפעילות'); return; }
   } else pool = letters.map(l => ({ letter: l }));
-  G = { mode, letters, pool: shuffle(pool), i: 0, goals: 0, streak: 0, bestStreak: 0, lock: false, rounds: Math.min(ROUNDS, Math.max(pool.length, 1)) };
-  if (mode === 'words' && G.pool.length < ROUNDS) { while (G.pool.length < ROUNDS) G.pool = G.pool.concat(shuffle(pool)); G.rounds = ROUNDS; }
+  G = { mode, letters, pool: shuffle(pool), i: 0, goals: 0, streak: 0, bestStreak: 0, lock: false, rounds: ROUNDS };
+  while (G.pool.length < ROUNDS) G.pool = G.pool.concat(shuffle(pool));
   show('play'); nextQ();
 }
 function board(){ $('board').textContent = `⚽ ${G.goals} : ${G.i - G.goals} · ${Math.min(G.i + 1, G.rounds)}/${G.rounds}`; }
@@ -329,8 +330,7 @@ function nextQ(){
   G.lock = false; $('msg').textContent = ''; board();
   const item = G.pool[G.i];
   const answer = G.mode === 'words' ? item.word[0].toUpperCase() : item.letter;
-  const wrong = shuffle(G.letters.filter(l => l !== answer)).slice(0, 3);
-  while (wrong.length < 3) { const l = ALPHA[Math.random() * 26 | 0]; if (l !== answer && !wrong.includes(l)) wrong.push(l); }
+  const wrong = shuffle(G.letters.filter(l => l !== answer)).slice(0, 3); // only the selected letters
   G.answer = answer;
   const p = $('prompt'); p.textContent = '';
   if (G.mode === 'letters') {
