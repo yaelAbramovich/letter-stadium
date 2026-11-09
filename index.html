@@ -31,7 +31,7 @@ body{
   background:repeating-linear-gradient(90deg,var(--pitch) 0 48px,var(--pitch2) 48px 96px);
   position:fixed;inset:0;overflow:hidden;
 }
-button,.card,.opt{
+button,.card,.opt,.tgt,.mc{
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
   touch-action:manipulation;font-family:inherit;
 }
@@ -47,33 +47,38 @@ h2{margin:10px 0;font-size:22px}
 .sub{text-align:center;opacity:.9;margin:0 0 14px}
 .btn{
   display:block;width:100%;border:0;border-radius:20px;padding:16px;font-size:20px;font-weight:900;
-  color:var(--ink);background:var(--gold);box-shadow:0 6px 0 #b39500;margin:10px 0;cursor:pointer;
+  color:var(--ink);background:var(--gold);box-shadow:0 6px 0 #b39500;margin:10px 0;cursor:pointer;flex-shrink:0;
 }
 .btn:active{transform:translateY(4px);box-shadow:0 2px 0 #b39500}
 .btn.green{background:var(--ok);box-shadow:0 6px 0 #1aa84c}
 .btn.green:active{box-shadow:0 2px 0 #1aa84c}
+.btn.blue{background:#5bb5ff;box-shadow:0 6px 0 #2c7fc0}
+.btn.blue:active{box-shadow:0 2px 0 #2c7fc0}
 .btn.ghost{background:rgba(255,255,255,.16);color:#fff;box-shadow:none;border:2px solid rgba(255,255,255,.4)}
 .btn.small{display:inline-block;width:auto;padding:10px 16px;font-size:16px;margin:4px}
 .btn.danger{background:var(--red);color:#fff;box-shadow:0 4px 0 #a02020}
-.stats{display:flex;gap:10px;margin:8px 0 14px}
+.stats{display:flex;gap:10px;margin:8px 0 10px}
 .stat{flex:1;background:rgba(0,0,0,.3);border-radius:16px;padding:10px;text-align:center}
 .stat b{display:block;font-size:26px;color:var(--gold);font-family:'Fredoka',sans-serif}
 .stat span{font-size:13px;opacity:.85}
+.times{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;background:rgba(0,0,0,.25);border-radius:14px;padding:8px;margin-bottom:6px;text-align:center;font-size:11px}
+.times b{display:block;font-family:'Fredoka',sans-serif;font-size:15px;color:var(--gold);direction:ltr}
 .ball{font-size:64px;text-align:center;line-height:1}
-.top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-shrink:0}
 .top .btn{margin:0;width:auto;padding:8px 14px;font-size:16px}
-.scoreboard{background:#000;border:3px solid #555;border-radius:12px;padding:6px 14px;font-family:'Fredoka',sans-serif;font-size:22px;color:var(--gold);letter-spacing:1px;direction:ltr}
+.scoreboard{background:#000;border:3px solid #555;border-radius:12px;padding:6px 12px;font-family:'Fredoka',sans-serif;font-size:20px;color:var(--gold);letter-spacing:1px;direction:ltr;white-space:nowrap}
+.clock{font-family:'Fredoka',sans-serif;font-size:20px;background:rgba(0,0,0,.45);padding:6px 10px;border-radius:12px;direction:ltr;min-width:78px;text-align:center}
 .goal{
   position:relative;height:120px;margin:6px 0 12px;border:4px solid #fff;border-bottom:0;border-radius:10px 10px 0 0;
   background:repeating-linear-gradient(45deg,rgba(255,255,255,.14) 0 6px,transparent 6px 12px),
              repeating-linear-gradient(-45deg,rgba(255,255,255,.14) 0 6px,transparent 6px 12px);
-  overflow:hidden;
+  overflow:hidden;flex-shrink:0;
 }
 .goal .gk{position:absolute;bottom:0;left:50%;font-size:56px;transform:translateX(-50%);transition:transform .35s}
 .goal .shot{position:absolute;bottom:-10px;left:50%;font-size:40px;transform:translateX(-50%);transition:all .5s cubic-bezier(.2,.8,.3,1)}
 .prompt{
   background:var(--card);color:var(--ink);border-radius:24px;padding:14px;text-align:center;margin-bottom:12px;
-  min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;flex-shrink:0;
 }
 .prompt .big{font-family:'Fredoka',sans-serif;font-weight:700;font-size:84px;line-height:1}
 .prompt .pic{font-size:84px;line-height:1}
@@ -89,7 +94,35 @@ h2{margin:10px 0;font-size:22px}
 .opt.good{background:var(--ok);box-shadow:0 6px 0 #1aa84c}
 .opt.bad{background:var(--red);color:#fff;box-shadow:0 6px 0 #a02020}
 .msg{text-align:center;font-size:26px;font-weight:900;min-height:36px;margin:10px 0 0}
-.panel{background:rgba(0,0,0,.28);border-radius:18px;padding:12px;margin:10px 0}
+/* penalty shootout */
+#penZone{display:none}
+#play.pen .goal,#play.pen #opts{display:none}
+#play.pen #penZone{display:block}
+.pgoal{position:relative;height:210px;border:4px solid #fff;border-bottom:0;border-radius:12px 12px 0 0;margin:2px 0 0;
+  background:repeating-linear-gradient(45deg,rgba(255,255,255,.12) 0 6px,transparent 6px 12px),repeating-linear-gradient(-45deg,rgba(255,255,255,.12) 0 6px,transparent 6px 12px)}
+.tgts{position:absolute;inset:8px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;direction:ltr}
+.tgt{border:2px dashed rgba(255,255,255,.75);background:rgba(255,255,255,.2);color:#fff;border-radius:14px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:42px}
+.tgt.good{background:var(--ok);color:var(--ink);border-style:solid}
+.tgt.bad{background:var(--red);border-style:solid}
+#pgk{position:absolute;left:50%;top:50%;font-size:58px;transform:translate(-50%,-50%);transition:transform .35s;pointer-events:none;z-index:2}
+#pball{display:block;width:60px;margin:12px auto 0;font-size:46px;text-align:center;line-height:1}
+/* catch */
+#cvWrap{position:relative;flex:1;min-height:300px;border-radius:18px;overflow:hidden;background:rgba(0,0,0,.18)}
+#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.hud{display:flex;justify-content:space-between;align-items:center;margin:0 0 8px;font-weight:900;font-size:20px;flex-shrink:0}
+.hud .tg{font-family:'Fredoka',sans-serif;font-size:28px;background:#fff;color:var(--ink);border-radius:12px;padding:2px 14px;direction:ltr}
+/* memory */
+.grid{display:grid;gap:10px;direction:ltr;margin-top:6px}
+.mc{border:0;border-radius:16px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:44px;aspect-ratio:3/4;background:#1d6f47;color:#fff;box-shadow:0 5px 0 #0c3f27}
+.mc.open{background:#fff;color:var(--ink);box-shadow:0 5px 0 #b8c4bd}
+.mc.done{background:var(--ok);color:var(--ink);box-shadow:0 5px 0 #1aa84c}
+/* cards */
+.cardgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cardgrid svg,.pop svg{width:100%;height:auto;display:block}
+.pop{width:150px;margin:8px auto;animation:pop .6s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.2) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}
+.rec{font-weight:900;color:var(--gold);text-align:center;font-size:22px;min-height:28px}
+.panel{background:rgba(0,0,0,.28);border-radius:18px;padding:12px;margin:10px 0;flex-shrink:0}
 .letters{display:flex;flex-wrap:wrap;gap:6px;direction:ltr;justify-content:center}
 .letters button{width:44px;height:44px;border-radius:10px;border:2px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-weight:900;font-size:18px}
 .letters button.sel{background:var(--gold);color:var(--ink);border-color:var(--gold)}
@@ -109,7 +142,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
 .shake{animation:shake .35s}
 @keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-.parent-link{margin-top:auto;background:none;border:0;color:rgba(255,255,255,.6);font-size:14px;padding:14px}
+.parent-link{margin-top:auto;background:none;border:0;color:rgba(255,255,255,.6);font-size:14px;padding:14px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -124,21 +157,53 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
     <div class="stat"><b id="stBest">0</b><span>שיא משחק</span></div>
     <div class="stat"><b id="stStreak">0</b><span>רצף שיא</span></div>
   </div>
-  <button class="btn green" data-mode="letters">🔊 בעיטה לשער – שמעו ובחרו אות</button>
-  <button class="btn" data-mode="words">🖼️ תמונה ומילה – באיזו אות מתחילה?</button>
+  <div class="times" id="timesBox"></div>
+  <p class="sub" style="margin:0 0 4px;font-size:12px">⏱️ שיאי זמן</p>
+  <button class="btn green" data-mode="penalty">🥅 דו-קרב פנדלים</button>
+  <button class="btn blue" data-mode="catch">🧤 תופסים כדורים</button>
+  <button class="btn" data-mode="memory">🃏 משחק זיכרון</button>
+  <button class="btn ghost" data-mode="letters">🔊 שמעו ובחרו אות</button>
+  <button class="btn ghost" data-mode="words">🖼️ תמונה ומילה</button>
+  <button class="btn" id="toCards" style="background:#ff9ff3;box-shadow:0 6px 0 #c06bb5">⭐ קלפי השחקנים שלי (<span id="cardCount">0</span>/30)</button>
   <button class="parent-link" id="toParents">⚙️ אזור הורים</button>
 </section>
 
-<!-- PLAY -->
+<!-- PLAY (letters, words, penalty) -->
 <section id="play" class="screen">
   <div class="top">
-    <button class="btn ghost" id="quit">✖ יציאה</button>
+    <button class="btn ghost" data-home>✖ יציאה</button>
+    <div class="clock" id="clock">0.0s</div>
     <div class="scoreboard" id="board">⚽ 0 : 0 · 1/10</div>
   </div>
   <div class="goal"><div class="gk" id="gk">🧤</div><div class="shot" id="shot">⚽</div></div>
   <div class="prompt" id="prompt"></div>
   <div class="opts" id="opts"></div>
+  <div id="penZone">
+    <div class="pgoal" id="pgoal"><div id="pgk">🧤</div><div class="tgts" id="tgts"></div></div>
+    <span id="pball">⚽</span>
+  </div>
   <div class="msg" id="msg"></div>
+</section>
+
+<!-- CATCH -->
+<section id="catch" class="screen">
+  <div class="top">
+    <button class="btn ghost" data-home>✖ יציאה</button>
+    <div class="clock" id="cClock">0.0s</div>
+  </div>
+  <div class="hud"><span id="cLives">❤️❤️❤️</span><span>תפסו: <span class="tg" id="cTarget">?</span></span><span id="cScore" style="direction:ltr">0/10</span></div>
+  <div id="cvWrap"><canvas id="cv"></canvas></div>
+</section>
+
+<!-- MEMORY -->
+<section id="memory" class="screen">
+  <div class="top">
+    <button class="btn ghost" data-home>✖ יציאה</button>
+    <div class="clock" id="mClock">0.0s</div>
+    <div class="scoreboard" id="mMoves">🃏 0</div>
+  </div>
+  <p class="sub" style="margin:4px 0">מצאו זוגות של אות גדולה וקטנה</p>
+  <div class="grid" id="mGrid"></div>
 </section>
 
 <!-- RESULT -->
@@ -146,8 +211,19 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   <div class="ball" id="resBall">🏆</div>
   <h1 id="resTitle"></h1>
   <p class="sub" id="resText"></p>
+  <div class="stat" style="margin:0 0 6px"><b id="resTime">0.0s</b><span>הזמן שלכם</span></div>
+  <div class="rec" id="resRec"></div>
+  <div id="resCard"></div>
   <button class="btn green" id="again">שחקו שוב</button>
-  <button class="btn ghost" id="resHome">חזרה לאצטדיון</button>
+  <button class="btn ghost" id="resCards">⭐ לקלפים שלי</button>
+  <button class="btn ghost" data-home>חזרה לאצטדיון</button>
+</section>
+
+<!-- CARDS -->
+<section id="cards" class="screen">
+  <div class="top"><h1 style="margin:0;font-size:26px">⭐ הקלפים שלי</h1><button class="btn ghost" data-home>חזרה</button></div>
+  <p class="sub" id="cardsSub"></p>
+  <div class="cardgrid" id="cardGrid"></div>
 </section>
 
 <!-- PARENTS -->
@@ -181,7 +257,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 
   <div class="panel">
     <h2>גיבוי נתונים</h2>
-    <p style="margin:0 0 8px;font-size:14px;opacity:.9">אפליקציה שמותקנת על המסך הראשי שומרת נתונים בנפרד מ‑Safari. מומלץ לייצא גיבוי לפני שמוחקים את האפליקציה או עוברים למכשיר אחר.</p>
+    <p style="margin:0 0 8px;font-size:14px;opacity:.9">אפליקציה שמותקנת על המסך הראשי שומרת נתונים בנפרד מ‑Safari. מומלץ לייצא גיבוי לפני שמוחקים את האפליקציה או עוברים למכשיר אחר. הגיבוי כולל גם שיאים וקלפים.</p>
     <div class="row">
       <button class="btn small green" id="exp">📤 ייצוא גיבוי</button>
       <button class="btn small" id="imp">📥 ייבוא גיבוי</button>
@@ -209,6 +285,8 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 const $ = (id) => document.getElementById(id);
 const KEY = 'letterStadium.v1';
 const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const MODES = ['penalty', 'catch', 'memory', 'letters', 'words'];
+const MODE_NAMES = { penalty: 'פנדלים', catch: 'תפיסה', memory: 'זיכרון', letters: 'אותיות', words: 'מילים' };
 const DEFAULT_WORDS = [
   ['apple','🍎'],['ball','⚽'],['cat','🐱'],['dog','🐶'],['egg','🥚'],['fish','🐟'],['goat','🐐'],['hat','🎩'],
   ['ice cream','🍦'],['juice','🧃'],['kite','🪁'],['lion','🦁'],['moon','🌙'],['nose','👃'],['orange','🍊'],
@@ -216,8 +294,40 @@ const DEFAULT_WORDS = [
   ['watch','⌚'],['xylophone','🎹'],['yo-yo','🪀'],['zebra','🦓']
 ].map(([word, emoji], i) => ({ id: 'd' + i, word, emoji, img: '' }));
 
+/* ---------- collectible players (original cartoon characters) ---------- */
+const NAMES = ['Rocket Ron','Speedy Sam','Captain Kai','Lucky Luna','Turbo Tom','Zippy Zoe','Big Ben','Flash Finn','Dizzy Dan',
+  'Mighty Mia','Bouncy Bo','Sunny Sid','Thunder Theo','Wiggles Wes','Cool Cleo','Jumpy Jay','Cheeky Chi','Sneaky Sky',
+  'Blaze Bella','Iron Ivan','Magic Maya','Ninja Nico','Cosmo Kid','Dragon Dev','Star Stella','Golden Gus','Royal Rex',
+  'Cyber Cass','Phoenix Pip','Mega Milo'];
+const SKIN = ['#f6d3b3','#e8b98d','#c68b59','#8d5a3b','#f2c9a0'];
+const HAIR = ['#2b1b10','#6b3f1d','#d9a441','#c0392b','#111','#5b4bd6','#1aa5a5'];
+const CARDS = NAMES.map((name, i) => {
+  const rar = i >= 26 ? 2 : i >= 18 ? 1 : 0;
+  return { id: 'p' + i, name, rar, hue: (i * 47) % 360, skin: SKIN[i % 5], hair: HAIR[(i * 3) % 7], num: (i * 7) % 98 + 1, stat: 55 + (i * 11) % 30 + rar * 10 };
+});
+const RAR_COL = ['#aab4bb', '#4aa3ff', '#ffd60a'], RAR_NAME = ['רגיל', 'נדיר', 'זהב'];
+function cardSVG(c, owned) {
+  if (!owned) return `<svg viewBox="0 0 120 170"><rect x="2" y="2" width="116" height="166" rx="14" fill="#2a4a3a" stroke="#4d6b5c" stroke-width="3"/><text x="60" y="100" text-anchor="middle" font-size="60" fill="#4d6b5c" font-family="Fredoka,sans-serif" font-weight="700">?</text></svg>`;
+  const col = RAR_COL[c.rar], j = `hsl(${c.hue},70%,50%)`, j2 = `hsl(${c.hue},70%,35%)`;
+  return `<svg viewBox="0 0 120 170"><defs><linearGradient id="g${c.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.rar === 2 ? '#fff3b0' : c.rar === 1 ? '#cfe8ff' : '#eef2f4'}"/><stop offset="1" stop-color="${col}"/></linearGradient></defs>
+  <rect x="2" y="2" width="116" height="166" rx="14" fill="url(#g${c.id})" stroke="${col}" stroke-width="4"/>
+  <text x="60" y="18" text-anchor="middle" font-size="10" font-weight="900" fill="#0d2a1c" font-family="Heebo,sans-serif">${'★'.repeat(c.rar + 1)}</text>
+  <path d="M26 140 L33 96 Q60 84 87 96 L94 140Z" fill="${j}" stroke="${j2}" stroke-width="2"/>
+  <path d="M50 90 Q60 100 70 90" fill="none" stroke="${j2}" stroke-width="3"/>
+  <text x="60" y="124" text-anchor="middle" font-size="22" font-weight="700" fill="#fff" font-family="Fredoka,sans-serif">${c.num}</text>
+  <rect x="52" y="76" width="16" height="16" rx="6" fill="${c.skin}"/>
+  <circle cx="60" cy="56" r="24" fill="${c.skin}"/>
+  <path d="M35 56 Q36 26 60 28 Q84 26 85 56 Q74 40 60 42 Q46 40 35 56Z" fill="${c.hair}"/>
+  <circle cx="51" cy="58" r="3" fill="#222"/><circle cx="69" cy="58" r="3" fill="#222"/>
+  <path d="M50 68 Q60 77 70 68" fill="none" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+  <rect x="6" y="142" width="108" height="24" rx="8" fill="#0d2a1c"/>
+  <text x="60" y="154" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" font-family="Fredoka,sans-serif">${c.name}</text>
+  <text x="60" y="164" text-anchor="middle" font-size="8" fill="${col}" font-family="Fredoka,sans-serif">⚡ ${c.stat} · ${RAR_NAME[c.rar]}</text></svg>`;
+}
+
 /* ---------- storage ---------- */
-function defaults(){ return { letters: ALPHA.slice(), words: DEFAULT_WORDS.map(w => ({...w})), records: { goals: 0, bestScore: 0, bestStreak: 0, matches: 0 } }; }
+function emptyRecords(){ return { goals: 0, bestScore: 0, bestStreak: 0, matches: 0, times: {} }; }
+function defaults(){ return { letters: ALPHA.slice(), words: DEFAULT_WORDS.map(w => ({...w})), records: emptyRecords(), cards: [] }; }
 let state = defaults();
 function load(){
   try { const raw = localStorage.getItem(KEY); if (raw) { const v = sanitize(JSON.parse(raw)); if (v) state = v; } } catch (_) {}
@@ -228,6 +338,7 @@ function save(){
 }
 function num(n){ return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0; }
 // Validates and normalises data from storage or an imported backup. Returns null if invalid.
+// Old backups (without times/cards) are accepted.
 function sanitize(d){
   if (!d || typeof d !== 'object') return null;
   if (!Array.isArray(d.letters) || !Array.isArray(d.words) || !d.records || typeof d.records !== 'object') return null;
@@ -241,8 +352,11 @@ function sanitize(d){
     const emoji = typeof w.emoji === 'string' ? w.emoji.slice(0, 8) : '';
     words.push({ id: typeof w.id === 'string' ? w.id.slice(0, 32) : 'w' + Math.random().toString(36).slice(2), word, emoji, img });
   }
-  const r = d.records;
-  return { letters, words, records: { goals: num(r.goals), bestScore: num(r.bestScore), bestStreak: num(r.bestStreak), matches: num(r.matches) } };
+  const r = d.records, times = {};
+  for (const m of MODES) { const t = r.times && typeof r.times === 'object' ? num(r.times[m]) : 0; if (t > 0) times[m] = t; }
+  const valid = new Set(CARDS.map(c => c.id));
+  const cards = Array.isArray(d.cards) ? [...new Set(d.cards.filter(c => typeof c === 'string' && valid.has(c)))] : [];
+  return { letters, words, cards, records: { goals: num(r.goals), bestScore: num(r.bestScore), bestStreak: num(r.bestStreak), matches: num(r.matches), times } };
 }
 
 /* ---------- UI helpers ---------- */
@@ -257,6 +371,28 @@ function confetti(){
     s.style.left = Math.random() * 100 + 'vw'; s.style.animationDelay = Math.random() * .4 + 's';
     document.body.appendChild(s); setTimeout(() => s.remove(), 2400);
   }
+}
+function fmt(ms){
+  const s = ms / 1000; if (s < 60) return s.toFixed(1) + 's';
+  const m = Math.floor(s / 60); return m + ':' + (s - m * 60).toFixed(1).padStart(4, '0');
+}
+
+/* ---------- stopwatch ---------- */
+const clk = { acc: 0, t0: 0, on: false, paused: false, el: null, iv: 0 };
+function elapsed(){ return clk.acc + (clk.on ? performance.now() - clk.t0 : 0); }
+function tickClock(){ if (clk.el) clk.el.textContent = fmt(elapsed()); }
+function startClock(el){ stopClock(); clk.acc = 0; clk.t0 = performance.now(); clk.on = true; clk.paused = false; clk.el = el; clk.iv = setInterval(tickClock, 100); tickClock(); }
+function stopClock(){ const e = elapsed(); clearInterval(clk.iv); clk.on = false; clk.acc = e; clk.paused = false; return e; }
+document.addEventListener('visibilitychange', () => { // don't count time while the app is in the background
+  if (document.hidden && clk.on) { clk.acc = elapsed(); clk.on = false; clk.paused = true; }
+  else if (!document.hidden && clk.paused) { clk.t0 = performance.now(); clk.on = true; clk.paused = false; }
+});
+// Returns 'first' | 'record' | '' and stores the time if it is a new best.
+function recordTime(mode, ms){
+  const t = state.records.times, prev = t[mode]; ms = Math.round(ms);
+  if (!prev) { t[mode] = ms; return 'first'; }
+  if (ms < prev) { t[mode] = ms; return 'record'; }
+  return '';
 }
 
 /* ---------- audio: AudioContext + speech (iOS-safe) ---------- */
@@ -284,7 +420,6 @@ function speak(text){
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'en-US'; if (voice) u.voice = voice; u.rate = .8; u.pitch = 1.1; u.volume = 1;
-    // iOS standalone can leave the synth paused after backgrounding
     if (speechSynthesis.paused) speechSynthesis.resume();
     speechSynthesis.speak(u);
   } catch (_) {}
@@ -300,89 +435,241 @@ function tone(freqs, dur = .12, type = 'triangle'){
     });
   } catch (_) {}
 }
-const sGoal = () => tone([523, 659, 784, 1046]), sMiss = () => tone([220, 165], .2, 'sawtooth');
+const sGoal = () => tone([523, 659, 784, 1046]), sMiss = () => tone([220, 165], .2, 'sawtooth'), sPop = () => tone([880], .08);
 
-/* ---------- home ---------- */
-function refreshHome(){
-  $('stGoals').textContent = state.records.goals; $('stBest').textContent = state.records.bestScore; $('stStreak').textContent = state.records.bestStreak;
+/* ---------- navigation / home ---------- */
+let G = null, C = null, M = null, lastMode = 'penalty';
+function goHome(){
+  stopClock(); if (C) C.run = false; G = null; M = null;
+  try { speechSynthesis.cancel(); } catch (_) {}
+  refreshHome(); show('home');
 }
-document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => startMatch(b.dataset.mode)));
+document.querySelectorAll('[data-home]').forEach(b => b.addEventListener('click', goHome));
+function refreshHome(){
+  const r = state.records;
+  $('stGoals').textContent = r.goals; $('stBest').textContent = r.bestScore; $('stStreak').textContent = r.bestStreak;
+  $('cardCount').textContent = state.cards.length;
+  $('timesBox').innerHTML = MODES.map(m => `<div>${MODE_NAMES[m]}<b>${r.times[m] ? fmt(r.times[m]) : '—'}</b></div>`).join('');
+}
+function startGame(mode){
+  ensureAudio(); lastMode = mode;
+  if (state.letters.length < 2) { toast('יש לבחור לפחות 2 אותיות באזור ההורים'); return; }
+  if (mode === 'catch') startCatch(); else if (mode === 'memory') startMemory(); else startQuiz(mode);
+}
+document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => startGame(b.dataset.mode)));
 
-/* ---------- match ---------- */
+/* ---------- result + card rewards ---------- */
+function awardCard(r){ // r in 0..1 = how well she played; better play, better odds of rare/gold
+  const unowned = CARDS.filter(c => !state.cards.includes(c.id)); if (!unowned.length) return null;
+  const roll = Math.random(), rar = roll < r * .12 ? 2 : roll < r * .42 ? 1 : 0;
+  let pool = unowned.filter(c => c.rar === rar); if (!pool.length) pool = unowned;
+  const c = pool[Math.random() * pool.length | 0]; state.cards.push(c.id); return c;
+}
+function showResult({ ball, title, text, ms, timeNote, card, celebrate }){
+  $('resBall').textContent = ball; $('resTitle').textContent = title; $('resText').textContent = text;
+  $('resTime').textContent = ms == null ? '—' : fmt(ms);
+  $('resRec').textContent = timeNote === 'record' ? '⏱️ שיא זמן חדש! 🎉' : timeNote === 'first' ? '⏱️ זמן ראשון נקבע!' : '';
+  const rc = $('resCard'); rc.textContent = '';
+  if (card) { const d = document.createElement('div'); d.className = 'pop'; d.innerHTML = cardSVG(card, true); const t = document.createElement('div'); t.className = 'rec'; t.textContent = 'קלף חדש: ' + card.name + '!'; rc.append(d, t); }
+  if (celebrate || timeNote === 'record' || card) { confetti(); sGoal(); }
+  save(); show('result');
+}
+$('again').onclick = () => startGame(lastMode);
+$('resCards').onclick = () => { renderCards(); show('cards'); };
+$('toCards').onclick = () => { renderCards(); show('cards'); };
+function renderCards(){
+  $('cardsSub').textContent = `אספתם ${state.cards.length} מתוך ${CARDS.length} שחקנים. משחקים כדי לזכות בעוד!`;
+  $('cardGrid').innerHTML = CARDS.map(c => `<div>${cardSVG(c, state.cards.includes(c.id))}</div>`).join('');
+}
+
+/* ---------- quiz games: letters, words, penalty ---------- */
 const ROUNDS = 10;
-let G = null;
-function startMatch(mode){
-  ensureAudio();
+function padTo(a, n){ let out = a.slice(); while (out.length < n && a.length) out = out.concat(shuffle(a)); return out; }
+function startQuiz(mode){
   const letters = state.letters.slice();
-  if (letters.length < 2) { toast('יש לבחור לפחות 2 אותיות באזור ההורים'); return; }
-  let pool;
-  if (mode === 'words') {
-    pool = state.words.filter(w => letters.includes(w.word[0].toUpperCase()));
-    if (pool.length < 1) { toast('אין מילים שמתאימות לאותיות הפעילות'); return; }
-  } else pool = letters.map(l => ({ letter: l }));
-  G = { mode, letters, pool: shuffle(pool), i: 0, goals: 0, streak: 0, bestStreak: 0, lock: false, rounds: ROUNDS };
-  while (G.pool.length < ROUNDS) G.pool = G.pool.concat(shuffle(pool));
-  show('play'); nextQ();
+  const wpool = state.words.filter(w => letters.includes(w.word[0].toUpperCase()));
+  if (mode === 'words' && !wpool.length) { toast('אין מילים שמתאימות לאותיות הפעילות'); return; }
+  G = { mode, letters, lpool: padTo(shuffle(letters), ROUNDS), wpool: padTo(shuffle(wpool), ROUNDS),
+        i: 0, goals: 0, streak: 0, bestStreak: 0, lock: false, rounds: ROUNDS };
+  $('play').classList.toggle('pen', mode === 'penalty');
+  show('play'); startClock($('clock')); nextQ();
 }
 function board(){ $('board').textContent = `⚽ ${G.goals} : ${G.i - G.goals} · ${Math.min(G.i + 1, G.rounds)}/${G.rounds}`; }
 function nextQ(){
-  if (G.i >= G.rounds) return finish();
+  if (!G) return;
+  if (G.i >= G.rounds) return finishQuiz();
   G.lock = false; $('msg').textContent = ''; board();
-  const item = G.pool[G.i];
-  const answer = G.mode === 'words' ? item.word[0].toUpperCase() : item.letter;
-  const wrong = shuffle(G.letters.filter(l => l !== answer)).slice(0, 3); // only the selected letters
+  const pen = G.mode === 'penalty';
+  const kind = (G.mode === 'words' || (pen && G.i % 2 === 1 && G.wpool.length)) ? 'word' : 'letter';
+  let item, answer;
+  if (kind === 'word') { item = G.wpool[G.i]; answer = item.word[0].toUpperCase(); }
+  else { item = G.lpool[G.i]; answer = item; }
   G.answer = answer;
+  const wrong = shuffle(G.letters.filter(l => l !== answer)).slice(0, 3); // only the selected letters
   const p = $('prompt'); p.textContent = '';
-  if (G.mode === 'letters') {
-    const hint = document.createElement('div'); hint.className = 'big'; hint.textContent = '?';
-    const t = document.createElement('div'); t.className = 'hint'; t.textContent = 'איזו אות שמעתם?';
-    const sp = document.createElement('button'); sp.className = 'speak'; sp.textContent = '🔊'; sp.onclick = () => speak(answer);
-    p.append(hint, t, sp); setTimeout(() => speak(answer), 250);
+  const sp = document.createElement('button'); sp.className = 'speak'; sp.textContent = '🔊';
+  const hint = document.createElement('div'); hint.className = 'hint';
+  if (kind === 'letter') {
+    const big = document.createElement('div'); big.className = 'big'; big.textContent = '?';
+    hint.textContent = 'איזו אות שמעתם?'; sp.onclick = () => speak(answer); p.append(big, hint, sp);
+    setTimeout(() => speak(answer), 250);
   } else {
     if (item.img) { const im = document.createElement('img'); im.alt = ''; im.src = item.img; p.appendChild(im); }
     else { const e = document.createElement('div'); e.className = 'pic'; e.textContent = item.emoji || '❓'; p.appendChild(e); }
-    const t = document.createElement('div'); t.className = 'hint'; t.textContent = 'באיזו אות מתחילה המילה?';
-    const sp = document.createElement('button'); sp.className = 'speak'; sp.textContent = '🔊'; sp.onclick = () => speak(item.word);
-    p.append(t, sp); setTimeout(() => speak(item.word), 250);
+    hint.textContent = 'באיזו אות מתחילה המילה?'; sp.onclick = () => speak(item.word); p.append(hint, sp);
+    setTimeout(() => speak(item.word), 250);
   }
-  const o = $('opts'); o.textContent = '';
+  const host = pen ? $('tgts') : $('opts'); host.textContent = '';
   shuffle([answer, ...wrong]).forEach(l => {
-    const b = document.createElement('button'); b.className = 'opt'; b.textContent = G.mode === 'letters' && Math.random() < .5 ? l.toLowerCase() : l;
-    b.dataset.l = l; b.onclick = () => pick(b, l); o.appendChild(b);
+    const b = document.createElement('button'); b.className = pen ? 'tgt' : 'opt';
+    b.textContent = kind === 'letter' && Math.random() < .5 ? l.toLowerCase() : l;
+    b.dataset.l = l; b.onclick = () => pen ? penPick(b, l) : pick(b, l); host.appendChild(b);
   });
-  const shot = $('shot'); shot.style.transition = 'none'; shot.style.bottom = '-10px'; shot.style.left = '50%'; shot.style.fontSize = '40px';
-  $('gk').style.transform = 'translateX(-50%)';
+  if (pen) {
+    const ball = $('pball'), k = $('pgk'); ball.style.transition = 'none'; ball.style.transform = ''; k.style.transition = 'none'; k.style.transform = 'translate(-50%,-50%)';
+    void k.offsetWidth; k.style.transition = ''; ball.style.transition = '';
+  } else {
+    const shot = $('shot'); shot.style.transition = 'none'; shot.style.bottom = '-10px'; shot.style.left = '50%'; shot.style.fontSize = '40px';
+    $('gk').style.transform = 'translateX(-50%)';
+  }
+}
+function afterAnswer(ok){
+  if (ok) { G.goals++; G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak); sGoal(); confetti(); speak(G.answer); }
+  else { G.streak = 0; sMiss(); }
+  $('msg').textContent = ok ? 'גוווווול! ⚽🎉' : 'השוער תפס! נסו בבעיטה הבאה 🧤';
+  G.i++; setTimeout(nextQ, ok ? 1500 : 1900);
 }
 function pick(btn, l){
   if (G.lock) return; G.lock = true;
   const ok = l === G.answer, shot = $('shot'), gk = $('gk');
   void shot.offsetWidth; shot.style.transition = 'all .5s cubic-bezier(.2,.8,.3,1)';
   if (ok) {
-    btn.classList.add('good'); G.goals++; G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak);
+    btn.classList.add('good');
     shot.style.bottom = '60px'; shot.style.left = (Math.random() < .5 ? '25%' : '75%'); shot.style.fontSize = '24px';
     gk.style.transform = 'translateX(' + (shot.style.left === '25%' ? '120%' : '-220%') + ')';
-    $('msg').textContent = 'גוווווול! ⚽🎉'; sGoal(); confetti(); speak(G.answer);
   } else {
-    btn.classList.add('bad', 'shake'); G.streak = 0;
+    btn.classList.add('bad', 'shake');
     document.querySelectorAll('.opt').forEach(b => { if (b.dataset.l === G.answer) b.classList.add('good'); });
     shot.style.bottom = '30px'; shot.style.left = '50%'; shot.style.fontSize = '24px'; gk.style.transform = 'translateX(-50%) scale(1.3)';
-    $('msg').textContent = 'השוער תפס! נסו בבעיטה הבאה 🧤'; sMiss();
   }
-  G.i++; setTimeout(nextQ, ok ? 1500 : 1900);
+  afterAnswer(ok);
 }
-function finish(){
-  const r = state.records, prevBest = r.bestScore;
-  r.goals += G.goals; r.matches++; r.bestScore = Math.max(r.bestScore, G.goals); r.bestStreak = Math.max(r.bestStreak, G.bestStreak); save();
-  const rec = G.goals > prevBest && G.goals > 0;
-  $('resBall').textContent = G.goals >= 8 ? '🏆' : G.goals >= 5 ? '🥈' : '⚽';
-  $('resTitle').textContent = rec ? 'שיא חדש! 🎉' : G.goals >= 8 ? 'כוכבים!' : G.goals >= 5 ? 'כל הכבוד!' : 'ממשיכים להתאמן!';
-  $('resText').textContent = `הבקעתם ${G.goals} שערים מתוך ${G.rounds}. רצף הצלחות: ${G.bestStreak}.`;
-  if (G.goals >= 5) { confetti(); sGoal(); }
-  show('result');
+function penPick(btn, l){
+  if (G.lock) return; G.lock = true;
+  const ok = l === G.answer, c = (r) => [r.left + r.width / 2, r.top + r.height / 2];
+  const ballEl = $('pball'), [bx, by] = c(ballEl.getBoundingClientRect()), [tx, ty] = c(btn.getBoundingClientRect());
+  ballEl.style.transition = 'transform .5s cubic-bezier(.2,.8,.3,1)';
+  ballEl.style.transform = `translate(${tx - bx}px,${ty - by}px) scale(.55)`;
+  const all = [...document.querySelectorAll('#tgts .tgt')];
+  const kt = ok ? all.filter(b => b !== btn)[0] ? shuffle(all.filter(b => b !== btn))[0] : btn : btn; // keeper dives to the wrong corner on a goal, to the ball on a save
+  const [gx, gy] = c($('pgoal').getBoundingClientRect()), [kx, ky] = c(kt.getBoundingClientRect());
+  $('pgk').style.transform = `translate(calc(-50% + ${kx - gx}px), calc(-50% + ${ky - gy}px)) rotate(${kx < gx ? -25 : 25}deg)`;
+  if (ok) btn.classList.add('good'); else { btn.classList.add('bad'); all.forEach(b => { if (b.dataset.l === G.answer) b.classList.add('good'); }); }
+  afterAnswer(ok);
 }
-$('quit').onclick = () => { G = null; try { speechSynthesis.cancel(); } catch (_) {} refreshHome(); show('home'); };
-$('again').onclick = () => startMatch(G.mode);
-$('resHome').onclick = () => { refreshHome(); show('home'); };
+function finishQuiz(){
+  const ms = stopClock(), r = state.records, prevBest = r.bestScore, perfect = G.goals === G.rounds;
+  r.goals += G.goals; r.matches++; r.bestScore = Math.max(r.bestScore, G.goals); r.bestStreak = Math.max(r.bestStreak, G.bestStreak);
+  const timeNote = perfect ? recordTime(G.mode, ms) : ''; // time records only count for a perfect match
+  const card = awardCard(G.goals / G.rounds), newBest = G.goals > prevBest && G.goals > 0;
+  showResult({
+    ball: G.goals >= 8 ? '🏆' : G.goals >= 5 ? '🥈' : '⚽',
+    title: newBest ? 'שיא חדש! 🎉' : G.goals >= 8 ? 'כוכבים!' : G.goals >= 5 ? 'כל הכבוד!' : 'ממשיכים להתאמן!',
+    text: `הבקעתם ${G.goals} שערים מתוך ${G.rounds}. רצף הצלחות: ${G.bestStreak}.` + (perfect ? '' : ' (שיא זמן נספר רק כשמבקיעים בכל הבעיטות)'),
+    ms, timeNote, card, celebrate: G.goals >= 5
+  });
+}
+
+/* ---------- catch the falling balls ---------- */
+function startCatch(){
+  show('catch');
+  const cv = $('cv'), dpr = window.devicePixelRatio || 1;
+  cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr;
+  const W = cv.clientWidth, H = cv.clientHeight;
+  C = { letters: state.letters.slice(), score: 0, lives: 3, goal: 10, items: [], kx: W / 2, W, H, dpr, run: true, spawn: 0, last: performance.now(), target: '' };
+  const hud = () => { $('cLives').textContent = '❤️'.repeat(C.lives) + '🖤'.repeat(3 - C.lives); $('cScore').textContent = C.score + '/' + C.goal; $('cTarget').textContent = C.target; };
+  C.hud = hud;
+  C.newTarget = () => { const o = C.letters.filter(l => l !== C.target); C.target = o[Math.random() * o.length | 0]; hud(); speak(C.target); };
+  C.newTarget(); startClock($('cClock'));
+  const move = (e) => { const r = cv.getBoundingClientRect(); C.kx = Math.max(30, Math.min(C.W - 30, e.clientX - r.left)); };
+  cv.onpointerdown = (e) => { move(e); try { cv.setPointerCapture(e.pointerId); } catch (_) {} };
+  cv.onpointermove = move;
+  requestAnimationFrame(catchLoop);
+}
+function endCatch(win){
+  C.run = false; const ms = stopClock();
+  if (win) {
+    const r = state.records; r.matches++;
+    const timeNote = recordTime('catch', ms), card = awardCard(C.lives / 3);
+    showResult({ ball: '🏆', title: 'תפסתם הכל!', text: `נשארו לכם ${C.lives} לבבות. כל הכבוד!`, ms, timeNote, card, celebrate: true });
+  } else {
+    sMiss(); showResult({ ball: '😅', title: 'השוער התעייף', text: `תפסתם ${C.score} מתוך ${C.goal}. נסו שוב!`, ms, timeNote: '', card: null, celebrate: false });
+  }
+}
+function catchLoop(now){
+  if (!C || !C.run) return;
+  const dt = Math.min(.05, (now - C.last) / 1000); C.last = now;
+  const cv = $('cv'), ctx = cv.getContext('2d'); ctx.setTransform(C.dpr, 0, 0, C.dpr, 0, 0); ctx.clearRect(0, 0, C.W, C.H);
+  C.spawn -= dt;
+  if (C.spawn <= 0) {
+    C.spawn = Math.max(.45, 1 - C.score * .05);
+    const l = Math.random() < .45 ? C.target : C.letters[Math.random() * C.letters.length | 0];
+    C.items.push({ x: 28 + Math.random() * (C.W - 56), y: -30, v: 130 + C.score * 14 + Math.random() * 40, l });
+  }
+  const ky = C.H - 44;
+  for (const it of C.items) {
+    it.y += it.v * dt;
+    if (!it.dead && it.y > ky - 22 && it.y < ky + 20 && Math.abs(it.x - C.kx) < 44) {
+      it.dead = true;
+      if (it.l === C.target) { C.score++; sPop(); if (C.score >= C.goal) { C.hud(); return endCatch(true); } C.newTarget(); }
+      else { C.lives--; sMiss(); C.hud(); if (C.lives <= 0) return endCatch(false); }
+      C.hud();
+    }
+    if (it.y > C.H + 30) it.dead = true;
+  }
+  C.items = C.items.filter(i => !i.dead);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const it of C.items) {
+    ctx.beginPath(); ctx.arc(it.x, it.y, 26, 0, 7); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#222'; ctx.stroke();
+    ctx.fillStyle = '#0d2a1c'; ctx.font = '700 28px Fredoka, sans-serif'; ctx.fillText(it.l, it.x, it.y + 2);
+  }
+  ctx.font = '56px serif'; ctx.fillText('🧤', C.kx, ky);
+  requestAnimationFrame(catchLoop);
+}
+
+/* ---------- memory cards ---------- */
+function startMemory(){
+  const n = Math.min(6, state.letters.length), L = shuffle(state.letters).slice(0, n);
+  const cards = shuffle(L.flatMap(l => [{ l, t: l }, { l, t: l.toLowerCase() }]));
+  M = { cards, open: [], matched: 0, moves: 0, lock: false, pairs: n };
+  const cols = [3, 4, 5].find(c => cards.length % c === 0 && cards.length / c <= 4) || 4;
+  const g = $('mGrid'); g.textContent = ''; g.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  cards.forEach((c, i) => {
+    const b = document.createElement('button'); b.className = 'mc'; b.textContent = '⚽'; b.onclick = () => flip(i, b); c.el = b; g.appendChild(b);
+  });
+  $('mMoves').textContent = '🃏 0'; show('memory'); startClock($('mClock'));
+}
+function flip(i, b){
+  if (!M || M.lock) return; const c = M.cards[i];
+  if (c.done || M.open.includes(c)) return;
+  b.classList.add('open'); b.textContent = c.t; speak(c.l); M.open.push(c);
+  if (M.open.length < 2) return;
+  M.moves++; $('mMoves').textContent = '🃏 ' + M.moves;
+  const [a, d] = M.open;
+  if (a.l === d.l) {
+    a.done = d.done = true; a.el.className = d.el.className = 'mc done'; M.open = []; M.matched++; sPop();
+    if (M.matched === M.pairs) setTimeout(finishMemory, 600);
+  } else {
+    M.lock = true;
+    setTimeout(() => { [a, d].forEach(x => { x.el.className = 'mc'; x.el.textContent = '⚽'; }); M.open = []; M.lock = false; }, 900);
+  }
+}
+function finishMemory(){
+  const ms = stopClock(), r = state.records; r.matches++;
+  const q = M.moves <= M.pairs + 2 ? 1 : M.moves <= M.pairs * 2 ? .7 : .4;
+  const timeNote = recordTime('memory', ms), card = awardCard(q);
+  showResult({ ball: '🏆', title: 'מצאתם את כל הזוגות!', text: `סיימתם ב-${M.moves} ניסיונות.`, ms, timeNote, card, celebrate: true });
+}
 
 /* ---------- parents ---------- */
 let gateAns = 0;
@@ -397,7 +684,7 @@ $('gateOk').onclick = () => {
   else { $('gateA').value = ''; toast('תשובה שגויה'); }
 };
 $('gateA').addEventListener('keydown', e => { if (e.key === 'Enter') $('gateOk').click(); });
-$('pBack').onclick = () => { refreshHome(); show('home'); };
+$('pBack').onclick = goHome;
 
 function renderParents(){
   const lp = $('letterPick'); lp.textContent = '';
@@ -442,7 +729,7 @@ $('wAdd').onclick = () => {
   pendingImg = ''; $('wInput').value = ''; $('wEmoji').value = ''; $('wFileName').textContent = ''; $('wFile').value = '';
   save(); renderParents(); toast('המילה נוספה ✓');
 };
-$('resetRec').onclick = () => { if (confirm('לאפס את כל השיאים?')) { state.records = { goals: 0, bestScore: 0, bestStreak: 0, matches: 0 }; save(); refreshHome(); toast('השיאים אופסו'); } };
+$('resetRec').onclick = () => { if (confirm('לאפס את כל השיאים (כולל שיאי זמן)? הקלפים יישארו.')) { state.records = emptyRecords(); save(); refreshHome(); toast('השיאים אופסו'); } };
 
 /* ---------- backup ---------- */
 $('exp').onclick = async () => {
@@ -454,7 +741,7 @@ $('exp').onclick = async () => {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ files: [file], title: 'גיבוי אצטדיון האותיות' }); toast('הגיבוי מוכן ✓'); return;
     }
-  } catch (e) { if (e && e.name === 'AbortError') return; /* otherwise fall through to download */ }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
   const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000); toast('הגיבוי נשמר ✓');
@@ -467,7 +754,7 @@ $('impFile').onchange = async (e) => {
     const j = JSON.parse(await f.text());
     if (!j || j.app !== 'letter-stadium' || typeof j.version !== 'number' || j.version > 1) throw new Error('format');
     const v = sanitize(j.data); if (!v) throw new Error('data');
-    if (!confirm(`לשחזר גיבוי? ${v.words.length} מילים, ${v.records.goals} שערים. הנתונים הנוכחיים יוחלפו.`)) return;
+    if (!confirm(`לשחזר גיבוי? ${v.words.length} מילים, ${v.cards.length} קלפים, ${v.records.goals} שערים. הנתונים הנוכחיים יוחלפו.`)) return;
     state = v; save(); renderParents(); refreshHome(); toast('הגיבוי שוחזר בהצלחה ✓');
   } catch (_) { toast('הקובץ אינו גיבוי תקין של המשחק'); }
 };
