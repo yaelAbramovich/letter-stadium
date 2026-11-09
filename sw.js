@@ -1,5 +1,5 @@
 // Bump VERSION on every release so installed copies fetch the new files.
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CACHE = 'letter-stadium-' + VERSION;
 const FONT_CACHE = 'letter-stadium-fonts'; // survives version bumps
 

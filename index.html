@@ -61,7 +61,7 @@ h2{margin:10px 0;font-size:22px}
 .stat{flex:1;background:rgba(0,0,0,.3);border-radius:16px;padding:10px;text-align:center}
 .stat b{display:block;font-size:26px;color:var(--gold);font-family:'Fredoka',sans-serif}
 .stat span{font-size:13px;opacity:.85}
-.times{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;background:rgba(0,0,0,.25);border-radius:14px;padding:8px;margin-bottom:6px;text-align:center;font-size:11px}
+.times{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:rgba(0,0,0,.25);border-radius:14px;padding:8px;margin-bottom:6px;text-align:center;font-size:11px}
 .times b{display:block;font-family:'Fredoka',sans-serif;font-size:15px;color:var(--gold);direction:ltr}
 .ball{font-size:64px;text-align:center;line-height:1}
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-shrink:0}
@@ -96,7 +96,8 @@ h2{margin:10px 0;font-size:22px}
 .msg{text-align:center;font-size:26px;font-weight:900;min-height:36px;margin:10px 0 0}
 /* penalty shootout */
 #penZone{display:none}
-#play.pen .goal,#play.pen #opts{display:none}
+#play .goal{display:none}
+#play.pen #opts{display:none}
 #play.pen #penZone{display:block}
 .pgoal{position:relative;height:210px;border:4px solid #fff;border-bottom:0;border-radius:12px 12px 0 0;margin:2px 0 0;
   background:repeating-linear-gradient(45deg,rgba(255,255,255,.12) 0 6px,transparent 6px 12px),repeating-linear-gradient(-45deg,rgba(255,255,255,.12) 0 6px,transparent 6px 12px)}
@@ -116,6 +117,21 @@ h2{margin:10px 0;font-size:22px}
 .mc{border:0;border-radius:16px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:44px;aspect-ratio:3/4;background:#1d6f47;color:#fff;box-shadow:0 5px 0 #0c3f27}
 .mc.open{background:#fff;color:var(--ink);box-shadow:0 5px 0 #b8c4bd}
 .mc.done{background:var(--ok);color:var(--ink);box-shadow:0 5px 0 #1aa84c}
+/* ball + glove that fly to the tapped answer in the letter/word games */
+#fball,#fgk{position:absolute;display:none;pointer-events:none;z-index:5;transform:translate(-50%,-50%);transition:transform .45s cubic-bezier(.2,.8,.3,1);line-height:1}
+#fball{font-size:44px}#fgk{font-size:58px;transition-duration:.35s}
+#play:not(.pen) #fball,#play:not(.pen) #fgk{display:block}
+#play:not(.pen) .msg{margin-top:74px}
+/* letter hunt */
+.hgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;direction:ltr;margin-top:4px}
+.ht{background:#fff;color:var(--ink);border:0;border-radius:18px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:48px;min-height:100px;box-shadow:0 5px 0 #b8c4bd;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px}
+.ht .we{font-size:36px;line-height:1}.ht .ww{font-size:16px}.ht img{max-height:44px;max-width:90%;border-radius:8px}
+.ht.good{background:var(--ok);box-shadow:0 5px 0 #1aa84c}.ht.bad{background:var(--red);color:#fff;box-shadow:0 5px 0 #a02020}
+/* letter maze */
+.mgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;direction:ltr;touch-action:none;margin-top:4px}
+.mt{aspect-ratio:1;min-width:0;background:#fff;color:var(--ink);border-radius:14px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:34px;display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 4px 0 #b8c4bd;-webkit-user-select:none;user-select:none}
+.mt.vis{background:var(--ok);box-shadow:0 4px 0 #1aa84c}.mt.cur{background:var(--gold);box-shadow:0 4px 0 #b39500;font-size:38px}.mt.bad{background:var(--red);color:#fff}
+.mt.zgoal::after{content:'🥅';position:absolute;right:2px;bottom:0;font-size:18px}
 /* cards */
 .cardgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .cardgrid svg,.pop svg{width:100%;height:auto;display:block}
@@ -162,6 +178,8 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   <button class="btn green" data-mode="penalty">🥅 דו-קרב פנדלים</button>
   <button class="btn blue" data-mode="catch">🧤 תופסים כדורים</button>
   <button class="btn" data-mode="memory">🃏 משחק זיכרון</button>
+  <button class="btn" data-mode="maze" style="background:#c9a0ff;box-shadow:0 6px 0 #8d5fc7">🧩 מבוך אותיות</button>
+  <button class="btn" data-mode="hunt" style="background:#ff9f43;box-shadow:0 6px 0 #c2701c">🔎 ציד האות</button>
   <button class="btn ghost" data-mode="letters">🔊 שמעו ובחרו אות</button>
   <button class="btn ghost" data-mode="words">🖼️ תמונה ומילה</button>
   <button class="btn" id="toCards" style="background:#ff9ff3;box-shadow:0 6px 0 #c06bb5">⭐ קלפי השחקנים שלי (<span id="cardCount">0</span>/30)</button>
@@ -182,6 +200,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
     <div class="pgoal" id="pgoal"><div id="pgk">🧤</div><div class="tgts" id="tgts"></div></div>
     <span id="pball">⚽</span>
   </div>
+  <span id="fball">⚽</span><div id="fgk">🧤</div>
   <div class="msg" id="msg"></div>
 </section>
 
@@ -204,6 +223,28 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   </div>
   <p class="sub" style="margin:4px 0">מצאו זוגות של אות גדולה וקטנה</p>
   <div class="grid" id="mGrid"></div>
+</section>
+
+<!-- HUNT -->
+<section id="hunt" class="screen">
+  <div class="top">
+    <button class="btn ghost" data-home>✖ יציאה</button>
+    <div class="clock" id="hClock">0.0s</div>
+    <div class="scoreboard" id="hLeft">0/6</div>
+  </div>
+  <div class="hud" style="justify-content:center;gap:10px"><span>מצאו הכל של:</span><span class="tg" id="hTarget">N n</span></div>
+  <div class="hgrid" id="hGrid"></div>
+</section>
+
+<!-- MAZE -->
+<section id="maze" class="screen">
+  <div class="top">
+    <button class="btn ghost" data-home>✖ יציאה</button>
+    <div class="clock" id="zClock">0.0s</div>
+    <div class="scoreboard" id="zMist">❌ 0</div>
+  </div>
+  <div class="hud" style="justify-content:center;gap:10px"><span>עקבו רק אחרי:</span><span class="tg" id="zTarget">A a</span><span>לשער 🥅</span></div>
+  <div class="mgrid" id="zGrid"></div>
 </section>
 
 <!-- RESULT -->
@@ -285,8 +326,8 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 const $ = (id) => document.getElementById(id);
 const KEY = 'letterStadium.v1';
 const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-const MODES = ['penalty', 'catch', 'memory', 'letters', 'words'];
-const MODE_NAMES = { penalty: 'פנדלים', catch: 'תפיסה', memory: 'זיכרון', letters: 'אותיות', words: 'מילים' };
+const MODES = ['penalty', 'catch', 'memory', 'maze', 'hunt', 'letters', 'words'];
+const MODE_NAMES = { penalty: 'פנדלים', catch: 'תפיסה', memory: 'זיכרון', maze: 'מבוך', hunt: 'ציד', letters: 'אותיות', words: 'מילים' };
 const DEFAULT_WORDS = [
   ['apple','🍎'],['ball','⚽'],['cat','🐱'],['dog','🐶'],['egg','🥚'],['fish','🐟'],['goat','🐐'],['hat','🎩'],
   ['ice cream','🍦'],['juice','🧃'],['kite','🪁'],['lion','🦁'],['moon','🌙'],['nose','👃'],['orange','🍊'],
@@ -424,9 +465,8 @@ function speak(text){
     speechSynthesis.speak(u);
   } catch (_) {}
 }
-// Letters are spoken as a phonetic name + sound (never the bare capital, which iOS reads as "capital A").
+// Letters are spoken by name only, spelled phonetically (a bare capital is read by iOS as "capital A").
 const L_NAME = { A:'ay',B:'bee',C:'see',D:'dee',E:'ee',F:'eff',G:'jee',H:'aych',I:'eye',J:'jay',K:'kay',L:'ell',M:'em',N:'en',O:'oh',P:'pee',Q:'cue',R:'are',S:'ess',T:'tee',U:'you',V:'vee',W:'double you',X:'ex',Y:'why',Z:'zee' };
-const L_SOUND = { A:'ah',B:'buh',C:'kuh',D:'duh',E:'eh',F:'fuh',G:'guh',H:'huh',I:'ih',J:'juh',K:'kuh',L:'luh',M:'muh',N:'nuh',O:'aw',P:'puh',Q:'kwuh',R:'ruh',S:'sss',T:'tuh',U:'uh',V:'vuh',W:'wuh',X:'ks',Y:'yuh',Z:'zzz' };
 function speakSeq(parts){
   if (!('speechSynthesis' in window)) return;
   try {
@@ -439,7 +479,7 @@ function speakSeq(parts){
     });
   } catch (_) {}
 }
-function speakLetter(l){ l = String(l).toUpperCase(); speakSeq(L_NAME[l] ? [L_NAME[l], L_SOUND[l]] : [l.toLowerCase()]); }
+function speakLetter(l){ l = String(l).toUpperCase(); speakSeq([L_NAME[l] || l.toLowerCase()]); }
 function tone(freqs, dur = .12, type = 'triangle'){
   if (!actx) return;
   try {
@@ -454,9 +494,9 @@ function tone(freqs, dur = .12, type = 'triangle'){
 const sGoal = () => tone([523, 659, 784, 1046]), sMiss = () => tone([220, 165], .2, 'sawtooth'), sPop = () => tone([880], .08);
 
 /* ---------- navigation / home ---------- */
-let G = null, C = null, M = null, lastMode = 'penalty';
+let G = null, C = null, M = null, H = null, Z = null, lastMode = 'penalty';
 function goHome(){
-  stopClock(); if (C) C.run = false; G = null; M = null;
+  stopClock(); if (C) C.run = false; G = null; M = null; H = null; Z = null;
   try { speechSynthesis.cancel(); } catch (_) {}
   refreshHome(); show('home');
 }
@@ -470,7 +510,7 @@ function refreshHome(){
 function startGame(mode){
   ensureAudio(); lastMode = mode;
   if (state.letters.length < 2) { toast('יש לבחור לפחות 2 אותיות באזור ההורים'); return; }
-  if (mode === 'catch') startCatch(); else if (mode === 'memory') startMemory(); else startQuiz(mode);
+  if (mode === 'catch') startCatch(); else if (mode === 'memory') startMemory(); else if (mode === 'hunt') startHunt(); else if (mode === 'maze') startMaze(); else startQuiz(mode);
 }
 document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => startGame(b.dataset.mode)));
 
@@ -539,15 +579,12 @@ function nextQ(){
   shuffle([answer, ...wrong]).forEach(l => {
     const b = document.createElement('button'); b.className = pen ? 'tgt' : 'opt';
     b.textContent = kind === 'letter' && Math.random() < .5 ? l.toLowerCase() : l;
-    b.dataset.l = l; b.onclick = () => pen ? penPick(b, l) : pick(b, l); host.appendChild(b);
+    b.dataset.l = l; b.onclick = () => shoot(b, l); host.appendChild(b);
   });
   if (pen) {
     const ball = $('pball'), k = $('pgk'); ball.style.transition = 'none'; ball.style.transform = ''; k.style.transition = 'none'; k.style.transform = 'translate(-50%,-50%)';
     void k.offsetWidth; k.style.transition = ''; ball.style.transition = '';
-  } else {
-    const shot = $('shot'); shot.style.transition = 'none'; shot.style.bottom = '-10px'; shot.style.left = '50%'; shot.style.fontSize = '40px';
-    $('gk').style.transform = 'translateX(-50%)';
-  }
+  } else resetFly();
 }
 function afterAnswer(ok){
   if (ok) { G.goals++; G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak); sGoal(); confetti(); speakLetter(G.answer); }
@@ -555,32 +592,29 @@ function afterAnswer(ok){
   $('msg').textContent = ok ? 'גוווווול! ⚽🎉' : 'השוער תפס! נסו בבעיטה הבאה 🧤';
   G.i++; setTimeout(nextQ, ok ? 1500 : 1900);
 }
-function pick(btn, l){
-  if (G.lock) return; G.lock = true;
-  const ok = l === G.answer, shot = $('shot'), gk = $('gk');
-  void shot.offsetWidth; shot.style.transition = 'all .5s cubic-bezier(.2,.8,.3,1)';
-  if (ok) {
-    btn.classList.add('good');
-    shot.style.bottom = '60px'; shot.style.left = (Math.random() < .5 ? '25%' : '75%'); shot.style.fontSize = '24px';
-    gk.style.transform = 'translateX(' + (shot.style.left === '25%' ? '120%' : '-220%') + ')';
-  } else {
-    btn.classList.add('bad', 'shake');
-    document.querySelectorAll('.opt').forEach(b => { if (b.dataset.l === G.answer) b.classList.add('good'); });
-    shot.style.bottom = '30px'; shot.style.left = '50%'; shot.style.fontSize = '24px'; gk.style.transform = 'translateX(-50%) scale(1.3)';
-  }
-  afterAnswer(ok);
+function placeFly(){ // ball sits under the answers, glove in the middle of them (absolute inside #play)
+  const pl = $('play'), pr = pl.getBoundingClientRect(), o = $('opts').getBoundingClientRect();
+  const put = (el, x, y) => { el.style.left = (x - pr.left) + 'px'; el.style.top = (y - pr.top + pl.scrollTop) + 'px'; };
+  put($('fball'), o.left + o.width / 2, o.bottom + 34); put($('fgk'), o.left + o.width / 2, o.top + o.height / 2);
 }
-function penPick(btn, l){
+function resetFly(){
+  const b = $('fball'), k = $('fgk'); b.style.transition = k.style.transition = 'none';
+  b.style.transform = k.style.transform = 'translate(-50%,-50%)'; placeFly(); void k.offsetWidth; b.style.transition = k.style.transition = '';
+}
+// The ball flies to the tapped answer. On a goal the glove dives to another answer; on a miss it dives to the ball.
+function shoot(btn, l){
   if (G.lock) return; G.lock = true;
-  const ok = l === G.answer, c = (r) => [r.left + r.width / 2, r.top + r.height / 2];
-  const ballEl = $('pball'), [bx, by] = c(ballEl.getBoundingClientRect()), [tx, ty] = c(btn.getBoundingClientRect());
+  const pen = G.mode === 'penalty', ok = l === G.answer;
+  if (!pen) placeFly();
+  const ballEl = $(pen ? 'pball' : 'fball'), gkEl = $(pen ? 'pgk' : 'fgk'), all = [...(pen ? $('tgts') : $('opts')).children];
+  const c = (r) => [r.left + r.width / 2, r.top + r.height / 2], base = pen ? '0px' : '-50%';
+  const [bx, by] = c(ballEl.getBoundingClientRect()), [tx, ty] = c(btn.getBoundingClientRect());
   ballEl.style.transition = 'transform .5s cubic-bezier(.2,.8,.3,1)';
-  ballEl.style.transform = `translate(${tx - bx}px,${ty - by}px) scale(.55)`;
-  const all = [...document.querySelectorAll('#tgts .tgt')];
-  const kt = ok ? all.filter(b => b !== btn)[0] ? shuffle(all.filter(b => b !== btn))[0] : btn : btn; // keeper dives to the wrong corner on a goal, to the ball on a save
-  const [gx, gy] = c($('pgoal').getBoundingClientRect()), [kx, ky] = c(kt.getBoundingClientRect());
-  $('pgk').style.transform = `translate(calc(-50% + ${kx - gx}px), calc(-50% + ${ky - gy}px)) rotate(${kx < gx ? -25 : 25}deg)`;
-  if (ok) btn.classList.add('good'); else { btn.classList.add('bad'); all.forEach(b => { if (b.dataset.l === G.answer) b.classList.add('good'); }); }
+  ballEl.style.transform = `translate(calc(${base} + ${tx - bx}px), calc(${base} + ${ty - by}px)) scale(.55)`;
+  const kt = ok ? (shuffle(all.filter(b => b !== btn))[0] || btn) : btn;
+  const [gx, gy] = c(gkEl.getBoundingClientRect()), [ex, ey] = c(kt.getBoundingClientRect());
+  gkEl.style.transform = `translate(calc(-50% + ${ex - gx}px), calc(-50% + ${ey - gy}px)) rotate(${ex < gx ? -25 : 25}deg)`;
+  if (ok) btn.classList.add('good'); else { btn.classList.add('bad', 'shake'); all.forEach(b => { if (b.dataset.l === G.answer) b.classList.add('good'); }); }
   afterAnswer(ok);
 }
 function finishQuiz(){
@@ -652,6 +686,92 @@ function catchLoop(now){
   }
   ctx.font = '56px serif'; ctx.fillText('🧤', C.kx, C.ky);
   requestAnimationFrame(catchLoop);
+}
+
+/* ---------- shared finish for hunt + maze (+3s per mistake so tapping at random doesn't win) ---------- */
+function pickTarget(){ return state.letters[Math.random() * state.letters.length | 0]; }
+function finishFind(mode, mistakes, text){
+  const ms = stopClock() + mistakes * 3000, r = state.records; r.matches++;
+  const timeNote = recordTime(mode, ms), card = awardCard(mistakes <= 1 ? 1 : mistakes <= 4 ? .7 : .4);
+  showResult({ ball: '🏆', title: mistakes === 0 ? 'מושלם! בלי טעויות!' : 'כל הכבוד!', text: `${text} טעויות: ${mistakes}` + (mistakes ? ` (+${mistakes * 3} שניות)` : '') + '.', ms, timeNote, card, celebrate: true });
+}
+
+/* ---------- letter hunt: tap every target letter (N, n) and every word that starts with it ---------- */
+function startHunt(){
+  const T = pickTarget(), letters = state.letters, first = w => w.word[0].toUpperCase();
+  const tiles = shuffle(state.words.filter(w => first(w) === T)).slice(0, 2).map(w => ({ ok: true, word: w }));
+  for (let k = 0; tiles.length < 6; k++) tiles.push({ ok: true, t: k % 2 ? T.toLowerCase() : T });
+  shuffle(state.words.filter(w => first(w) !== T && letters.includes(first(w)))).slice(0, 2).forEach(w => tiles.push({ ok: false, word: w }));
+  const others = letters.filter(l => l !== T);
+  while (tiles.length < 12) { const l = others[Math.random() * others.length | 0]; tiles.push({ ok: false, t: Math.random() < .5 ? l : l.toLowerCase() }); }
+  H = { T, found: 0, mist: 0, total: 6 };
+  $('hTarget').textContent = T + ' ' + T.toLowerCase(); $('hLeft').textContent = '0/6';
+  const g = $('hGrid'); g.textContent = '';
+  shuffle(tiles).forEach(t => {
+    const b = document.createElement('button'); b.className = 'ht';
+    if (t.word) {
+      if (t.word.img) { const im = document.createElement('img'); im.alt = ''; im.src = t.word.img; b.appendChild(im); }
+      else { const e = document.createElement('span'); e.className = 'we'; e.textContent = t.word.emoji || '❓'; b.appendChild(e); }
+      const w = document.createElement('span'); w.className = 'ww'; w.textContent = t.word.word; b.appendChild(w);
+    } else b.textContent = t.t;
+    b.onclick = () => {
+      if (!H || b.classList.contains('good')) return;
+      if (t.ok) {
+        b.classList.add('good'); H.found++; $('hLeft').textContent = H.found + '/' + H.total; sPop();
+        if (t.word) speak(t.word.word); else speakLetter(H.T);
+        if (H.found === H.total) setTimeout(() => finishFind('hunt', H.mist, `מצאתם את כל ה-${H.T}!`), 500);
+      } else {
+        H.mist++; sMiss(); b.classList.add('bad', 'shake'); setTimeout(() => b.classList.remove('bad', 'shake'), 600);
+      }
+    };
+    g.appendChild(b);
+  });
+  show('hunt'); startClock($('hClock')); speakLetter(T);
+}
+
+/* ---------- letter maze: follow only the target letter from the ball to the goal ---------- */
+const MR = 7, MC = 5;
+function genPath(){ // random depth-first spanning tree; the tree path from the top-left to the bottom-right is the route
+  const vis = Array.from({ length: MR }, () => Array(MC).fill(false)), par = {}, stack = [[0, 0]]; vis[0][0] = true;
+  while (stack.length) {
+    const [r, c] = stack[stack.length - 1];
+    const nb = shuffle([[1,0],[-1,0],[0,1],[0,-1]]).map(([a, b]) => [r + a, c + b]).filter(([a, b]) => a >= 0 && b >= 0 && a < MR && b < MC && !vis[a][b]);
+    if (!nb.length) { stack.pop(); continue; }
+    const [a, b] = nb[0]; vis[a][b] = true; par[a + ',' + b] = [r, c]; stack.push([a, b]);
+  }
+  const path = []; for (let cur = [MR - 1, MC - 1]; cur; cur = par[cur[0] + ',' + cur[1]]) path.push(cur);
+  return path.reverse();
+}
+function startMaze(){
+  const T = pickTarget(), others = state.letters.filter(l => l !== T), rc = (l) => Math.random() < .5 ? l : l.toLowerCase();
+  const cells = Array.from({ length: MR }, () => Array.from({ length: MC }, () => ({ l: rc(others[Math.random() * others.length | 0]), ok: false })));
+  genPath().forEach(([r, c]) => { cells[r][c] = { l: rc(T), ok: true }; });
+  Z = { T, cells, r: 0, c: 0, mist: 0, last: null, down: false };
+  $('zTarget').textContent = T + ' ' + T.toLowerCase(); $('zMist').textContent = '❌ 0';
+  const g = $('zGrid'); g.textContent = '';
+  for (let r = 0; r < MR; r++) for (let c = 0; c < MC; c++) {
+    const d = document.createElement('div'); d.className = 'mt'; d.dataset.r = r; d.dataset.c = c; d.textContent = cells[r][c].l;
+    if (r === MR - 1 && c === MC - 1) d.classList.add('zgoal'); g.appendChild(d);
+  }
+  mzTile(0, 0).className = 'mt cur'; mzTile(0, 0).textContent = '⚽';
+  g.onpointerdown = (e) => { Z.down = true; Z.last = null; mzHandle(e); };
+  g.onpointermove = (e) => { if (Z && Z.down) mzHandle(e); };
+  g.onpointerup = g.onpointercancel = () => { if (Z) Z.down = false; };
+  show('maze'); startClock($('zClock')); speakLetter(T);
+}
+function mzTile(r, c){ return $('zGrid').children[r * MC + c]; }
+function mzHandle(e){ // works for taps and for dragging a finger along the path
+  const el = document.elementFromPoint(e.clientX, e.clientY), t = el && el.closest && el.closest('.mt');
+  if (!t || t === Z.last) return; Z.last = t;
+  const r = +t.dataset.r, c = +t.dataset.c, dist = Math.abs(r - Z.r) + Math.abs(c - Z.c);
+  if (dist !== 1) return; // only the neighbouring tiles can be entered
+  if (Z.cells[r][c].ok) {
+    const old = mzTile(Z.r, Z.c); old.className = 'mt vis' + (Z.r === MR - 1 && Z.c === MC - 1 ? ' zgoal' : ''); old.textContent = Z.cells[Z.r][Z.c].l;
+    Z.r = r; Z.c = c; t.className = 'mt cur' + (r === MR - 1 && c === MC - 1 ? ' zgoal' : ''); t.textContent = '⚽'; sPop();
+    if (r === MR - 1 && c === MC - 1) { Z.down = false; sGoal(); setTimeout(() => finishFind('maze', Z.mist, 'הכדור הגיע לשער!'), 500); }
+  } else {
+    Z.mist++; $('zMist').textContent = '❌ ' + Z.mist; sMiss(); t.classList.add('bad', 'shake'); setTimeout(() => t.classList.remove('bad', 'shake'), 500);
+  }
 }
 
 /* ---------- memory cards ---------- */
