@@ -492,7 +492,7 @@ function sanitize(d){
     .map(p => ({ id: p.id, name: p.name.trim().slice(0, 14), num: p.num, color: p.color }));
   const letterInfo = {};
   if (isObj(d.letterInfo)) for (const L of Object.keys(d.letterInfo)) {
-    const v = d.letterInfo[L]; if (/^[A-Z]$/.test(L) && isObj(v)) letterInfo[L] = { name: String(v.name || '').slice(0, 16), sound: String(v.sound || '').slice(0, 16), say: String(v.say || '').replace(/[^A-Za-z. ]/g, '').slice(0, 12) };
+    const v = d.letterInfo[L]; if (/^[A-Z]$/.test(L) && isObj(v)) letterInfo[L] = { name: String(v.name || '').slice(0, 16), sound: String(v.sound || '').slice(0, 16), say: /^(ay|ey)$/i.test(String(v.say || '').trim()) ? '' : String(v.say || '').replace(/[^A-Za-z. ]/g, '').slice(0, 12) };
   }
   const me = typeof d.me === 'string' && players.some(p => p.id === d.me) ? d.me : (players[0] ? players[0].id : '');
   return { ver: num(d.ver), letters, words, cards, players, me, letterInfo,
@@ -577,7 +577,7 @@ function speak(text){
   } catch (_) {}
 }
 // Letters are spoken by name only, spelled phonetically (a bare capital is read by iOS as "capital A").
-const L_NAME = { A:'ey',B:'bee',C:'see',D:'dee',E:'ee',F:'eff',G:'jee',H:'aych',I:'eye',J:'jay',K:'kay',L:'ell',M:'em',N:'en',O:'oh',P:'pee',Q:'cue',R:'are',S:'ess',T:'tee',U:'you',V:'vee',W:'double you',X:'ex',Y:'why',Z:'zee' };
+const L_NAME = { A:'a',B:'bee',C:'see',D:'dee',E:'ee',F:'eff',G:'jee',H:'aych',I:'eye',J:'jay',K:'kay',L:'ell',M:'em',N:'en',O:'oh',P:'pee',Q:'cue',R:'are',S:'ess',T:'tee',U:'you',V:'vee',W:'double you',X:'ex',Y:'why',Z:'zee' };
 function speakSeq(parts){
   if (!('speechSynthesis' in window)) return;
   try {
@@ -995,8 +995,8 @@ function renderParents(){
   });
 }
 function sayCandidates(L){
-  const l = L.toLowerCase(), c = [L_NAME[L], l + '.', l, L];
-  if (L === 'A') c.push('eigh', 'ay', 'hey');
+  const l = L.toLowerCase(), c = [L_NAME[L], l + '.', l];
+  if (L === 'A') c.push('eigh', 'hey');
   return [...new Set(c.filter(Boolean))];
 }
 function renderVoices(){
