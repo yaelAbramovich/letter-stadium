@@ -424,6 +424,22 @@ function speak(text){
     speechSynthesis.speak(u);
   } catch (_) {}
 }
+// Letters are spoken as a phonetic name + sound (never the bare capital, which iOS reads as "capital A").
+const L_NAME = { A:'ay',B:'bee',C:'see',D:'dee',E:'ee',F:'eff',G:'jee',H:'aych',I:'eye',J:'jay',K:'kay',L:'ell',M:'em',N:'en',O:'oh',P:'pee',Q:'cue',R:'are',S:'ess',T:'tee',U:'you',V:'vee',W:'double you',X:'ex',Y:'why',Z:'zee' };
+const L_SOUND = { A:'ah',B:'buh',C:'kuh',D:'duh',E:'eh',F:'fuh',G:'guh',H:'huh',I:'ih',J:'juh',K:'kuh',L:'luh',M:'muh',N:'nuh',O:'aw',P:'puh',Q:'kwuh',R:'ruh',S:'sss',T:'tuh',U:'uh',V:'vuh',W:'wuh',X:'ks',Y:'yuh',Z:'zzz' };
+function speakSeq(parts){
+  if (!('speechSynthesis' in window)) return;
+  try {
+    speechSynthesis.cancel();
+    if (speechSynthesis.paused) speechSynthesis.resume();
+    parts.forEach((t, i) => {
+      const u = new SpeechSynthesisUtterance(t);
+      u.lang = 'en-US'; if (voice) u.voice = voice; u.rate = i ? .7 : .8; u.pitch = 1.1; u.volume = 1;
+      speechSynthesis.speak(u);
+    });
+  } catch (_) {}
+}
+function speakLetter(l){ l = String(l).toUpperCase(); speakSeq(L_NAME[l] ? [L_NAME[l], L_SOUND[l]] : [l.toLowerCase()]); }
 function tone(freqs, dur = .12, type = 'triangle'){
   if (!actx) return;
   try {
@@ -511,8 +527,8 @@ function nextQ(){
   const hint = document.createElement('div'); hint.className = 'hint';
   if (kind === 'letter') {
     const big = document.createElement('div'); big.className = 'big'; big.textContent = '?';
-    hint.textContent = 'איזו אות שמעתם?'; sp.onclick = () => speak(answer); p.append(big, hint, sp);
-    setTimeout(() => speak(answer), 250);
+    hint.textContent = 'איזו אות שמעתם?'; sp.onclick = () => speakLetter(answer); p.append(big, hint, sp);
+    setTimeout(() => speakLetter(answer), 250);
   } else {
     if (item.img) { const im = document.createElement('img'); im.alt = ''; im.src = item.img; p.appendChild(im); }
     else { const e = document.createElement('div'); e.className = 'pic'; e.textContent = item.emoji || '❓'; p.appendChild(e); }
@@ -534,7 +550,7 @@ function nextQ(){
   }
 }
 function afterAnswer(ok){
-  if (ok) { G.goals++; G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak); sGoal(); confetti(); speak(G.answer); }
+  if (ok) { G.goals++; G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak); sGoal(); confetti(); speakLetter(G.answer); }
   else { G.streak = 0; sMiss(); }
   $('msg').textContent = ok ? 'גוווווול! ⚽🎉' : 'השוער תפס! נסו בבעיטה הבאה 🧤';
   G.i++; setTimeout(nextQ, ok ? 1500 : 1900);
@@ -586,12 +602,14 @@ function startCatch(){
   const cv = $('cv'), dpr = window.devicePixelRatio || 1;
   cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr;
   const W = cv.clientWidth, H = cv.clientHeight;
-  C = { letters: state.letters.slice(), score: 0, lives: 3, goal: 10, items: [], kx: W / 2, W, H, dpr, run: true, spawn: 0, last: performance.now(), target: '' };
+  C = { letters: state.letters.slice(), score: 0, lives: 3, goal: 10, items: [], kx: W / 2, ky: H - 70, W, H, dpr, run: true, spawn: 0, last: performance.now(), target: '' };
   const hud = () => { $('cLives').textContent = '❤️'.repeat(C.lives) + '🖤'.repeat(3 - C.lives); $('cScore').textContent = C.score + '/' + C.goal; $('cTarget').textContent = C.target; };
   C.hud = hud;
-  C.newTarget = () => { const o = C.letters.filter(l => l !== C.target); C.target = o[Math.random() * o.length | 0]; hud(); speak(C.target); };
+  C.newTarget = () => { const o = C.letters.filter(l => l !== C.target); C.target = o[Math.random() * o.length | 0]; hud(); speakLetter(C.target); };
   C.newTarget(); startClock($('cClock'));
-  const move = (e) => { const r = cv.getBoundingClientRect(); C.kx = Math.max(30, Math.min(C.W - 30, e.clientX - r.left)); };
+  const move = (e) => { // hand follows the finger anywhere; on touch it floats above the finger so it stays visible
+    const r = cv.getBoundingClientRect(), lift = e.pointerType === 'touch' ? 55 : 0;
+    C.kx = Math.max(30, Math.min(C.W - 30, e.clientX - r.left)); C.ky = Math.max(30, Math.min(C.H - 30, e.clientY - r.top - lift)); };
   cv.onpointerdown = (e) => { move(e); try { cv.setPointerCapture(e.pointerId); } catch (_) {} };
   cv.onpointermove = move;
   requestAnimationFrame(catchLoop);
@@ -612,14 +630,13 @@ function catchLoop(now){
   const cv = $('cv'), ctx = cv.getContext('2d'); ctx.setTransform(C.dpr, 0, 0, C.dpr, 0, 0); ctx.clearRect(0, 0, C.W, C.H);
   C.spawn -= dt;
   if (C.spawn <= 0) {
-    C.spawn = Math.max(.45, 1 - C.score * .05);
+    C.spawn = Math.max(.4, .85 - C.score * .05);
     const l = Math.random() < .45 ? C.target : C.letters[Math.random() * C.letters.length | 0];
     C.items.push({ x: 28 + Math.random() * (C.W - 56), y: -30, v: 130 + C.score * 14 + Math.random() * 40, l });
   }
-  const ky = C.H - 44;
   for (const it of C.items) {
     it.y += it.v * dt;
-    if (!it.dead && it.y > ky - 22 && it.y < ky + 20 && Math.abs(it.x - C.kx) < 44) {
+    if (!it.dead && Math.hypot(it.x - C.kx, it.y - C.ky) < 50) {
       it.dead = true;
       if (it.l === C.target) { C.score++; sPop(); if (C.score >= C.goal) { C.hud(); return endCatch(true); } C.newTarget(); }
       else { C.lives--; sMiss(); C.hud(); if (C.lives <= 0) return endCatch(false); }
@@ -633,7 +650,7 @@ function catchLoop(now){
     ctx.beginPath(); ctx.arc(it.x, it.y, 26, 0, 7); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#222'; ctx.stroke();
     ctx.fillStyle = '#0d2a1c'; ctx.font = '700 28px Fredoka, sans-serif'; ctx.fillText(it.l, it.x, it.y + 2);
   }
-  ctx.font = '56px serif'; ctx.fillText('🧤', C.kx, ky);
+  ctx.font = '56px serif'; ctx.fillText('🧤', C.kx, C.ky);
   requestAnimationFrame(catchLoop);
 }
 
@@ -652,7 +669,7 @@ function startMemory(){
 function flip(i, b){
   if (!M || M.lock) return; const c = M.cards[i];
   if (c.done || M.open.includes(c)) return;
-  b.classList.add('open'); b.textContent = c.t; speak(c.l); M.open.push(c);
+  b.classList.add('open'); b.textContent = c.t; speakLetter(c.l); M.open.push(c);
   if (M.open.length < 2) return;
   M.moves++; $('mMoves').textContent = '🃏 ' + M.moves;
   const [a, d] = M.open;
