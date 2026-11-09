@@ -132,6 +132,33 @@ h2{margin:10px 0;font-size:22px}
 .mt{aspect-ratio:1;min-width:0;background:#fff;color:var(--ink);border-radius:14px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:34px;display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 4px 0 #b8c4bd;-webkit-user-select:none;user-select:none}
 .mt.vis{background:var(--ok);box-shadow:0 4px 0 #1aa84c}.mt.cur{background:var(--gold);box-shadow:0 4px 0 #b39500;font-size:38px}.mt.bad{background:var(--red);color:#fff}
 .mt.zgoal::after{content:'🥅';position:absolute;right:2px;bottom:0;font-size:18px}
+/* home: player badge + game cards (like the reference screens) */
+.me{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.3);border:2px solid rgba(255,255,255,.3);border-radius:18px;color:#fff;padding:6px 14px 6px 10px;font-weight:900;font-size:18px;margin:0 0 4px;flex-shrink:0;align-self:center}
+.me svg{width:40px;height:40px;display:block}.me small{opacity:.75;font-weight:700;font-size:13px}
+.glist{flex-shrink:0}
+.gcard{display:block;width:100%;text-align:right;background:#f6f8f4;color:var(--ink);border:0;border-radius:22px;padding:14px 16px;margin:10px 0;box-shadow:0 5px 0 #b8c4bd;cursor:pointer}
+.gcard:active{transform:translateY(3px);box-shadow:0 2px 0 #b8c4bd}
+.gcard .gi{font-size:44px;line-height:1}.gcard h3{margin:6px 0 2px;font-size:24px;font-weight:900}.gcard p{margin:0 0 8px;font-size:15px;opacity:.85}
+.gcard .rec2{display:inline-block;background:#fbe9b0;border-radius:12px;padding:6px 12px;font-size:14px;font-weight:700}
+/* players */
+.pitem{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.14);border:2px solid transparent;border-radius:16px;padding:8px 12px;margin:6px 0;flex-shrink:0}
+.pitem.sel{border-color:var(--gold);background:rgba(255,214,10,.18)}
+.pitem svg{width:44px;height:44px;flex-shrink:0}.pitem .pn{flex:1;font-size:20px;font-weight:900;text-align:right;background:none;border:0;color:#fff;padding:6px}
+.pitem .ed{background:rgba(255,255,255,.2);border:0;border-radius:10px;color:#fff;font-size:18px;padding:8px 12px}
+.swatches{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:12px 0}
+.sw{width:42px;height:42px;border-radius:50%;border:3px solid rgba(255,255,255,.5)}.sw.sel{border-color:#fff;box-shadow:0 0 0 3px var(--gold)}
+#plPreview svg,#resWho svg{width:96px;height:96px}
+#resWho{display:flex;align-items:center;justify-content:center;gap:10px;font-size:22px;margin-bottom:4px}#resWho svg{width:48px;height:48px}
+/* alphabet book */
+.chips{display:flex;gap:10px;overflow-x:auto;direction:ltr;padding:2px 2px 10px;flex-shrink:0}
+.chip{flex:0 0 auto;min-width:92px;background:#f6f8f4;color:var(--ink);border:3px solid transparent;border-radius:18px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:44px;padding:8px 14px;box-shadow:0 5px 0 #b8c4bd}
+.chip.sel{border-color:var(--gold)}
+.bigcard{background:#f6f8f4;color:var(--ink);border-radius:26px;padding:16px;text-align:center;flex-shrink:0}
+.bigL{font-family:'Fredoka',sans-serif;font-weight:700;font-size:130px;line-height:1.1;direction:ltr;border:0;background:none;display:block;margin:0 auto}.bigL .lo{color:#dc5646}
+.speakbtn{display:inline-block;background:#7fc8ff;color:var(--ink);border:0;border-radius:30px;padding:12px 18px;font-weight:900;font-size:17px;margin:4px}
+.wcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px;direction:ltr}
+.wc{background:#fff;color:var(--ink);border:2px solid #d3e2d7;border-radius:16px;padding:10px 4px;font-family:'Fredoka',sans-serif;font-weight:600;font-size:20px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.wc .we{font-size:42px;line-height:1.1}.wc img{max-height:46px;max-width:90%;border-radius:8px}.wc .hl{color:#dc5646;font-weight:700}
 /* cards */
 .cardgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .cardgrid svg,.pop svg{width:100%;height:auto;display:block}
@@ -165,7 +192,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 
 <!-- HOME -->
 <section id="home" class="screen on">
-  <div class="ball">⚽</div>
+  <button class="me" id="meBadge"></button>
   <h1>אצטדיון האותיות</h1>
   <p class="sub">בואו נשחק ונלמד אותיות באנגלית!</p>
   <div class="stats">
@@ -173,17 +200,34 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
     <div class="stat"><b id="stBest">0</b><span>שיא משחק</span></div>
     <div class="stat"><b id="stStreak">0</b><span>רצף שיא</span></div>
   </div>
-  <div class="times" id="timesBox"></div>
-  <p class="sub" style="margin:0 0 4px;font-size:12px">⏱️ שיאי זמן</p>
-  <button class="btn green" data-mode="penalty">🥅 דו-קרב פנדלים</button>
-  <button class="btn blue" data-mode="catch">🧤 תופסים כדורים</button>
-  <button class="btn" data-mode="memory">🃏 משחק זיכרון</button>
-  <button class="btn" data-mode="maze" style="background:#c9a0ff;box-shadow:0 6px 0 #8d5fc7">🧩 מבוך אותיות</button>
-  <button class="btn" data-mode="hunt" style="background:#ff9f43;box-shadow:0 6px 0 #c2701c">🔎 ציד האות</button>
-  <button class="btn ghost" data-mode="letters">🔊 שמעו ובחרו אות</button>
-  <button class="btn ghost" data-mode="words">🖼️ תמונה ומילה</button>
+  <div class="glist" id="gList"></div>
+  <button class="btn" id="toBook" style="background:#7fd1ff;box-shadow:0 6px 0 #3a97cc">📖 ספר האותיות</button>
   <button class="btn" id="toCards" style="background:#ff9ff3;box-shadow:0 6px 0 #c06bb5">⭐ קלפי השחקנים שלי (<span id="cardCount">0</span>/30)</button>
   <button class="parent-link" id="toParents">⚙️ אזור הורים</button>
+</section>
+
+<!-- PLAYERS -->
+<section id="players" class="screen">
+  <div class="top"><h1 style="margin:0;font-size:26px" id="plTitle">מי משחק?</h1><button class="btn ghost" id="plBack">חזרה</button></div>
+  <div id="plList"></div>
+  <div class="panel" id="plEdit">
+    <h2 id="plEditTitle" style="text-align:center">שחקן חדש</h2>
+    <div id="plPreview" style="text-align:center"></div>
+    <div class="row"><input type="text" id="plName" maxlength="14" placeholder="שם השחקן" autocomplete="off" style="direction:rtl;text-align:center"></div>
+    <div class="row" style="margin-top:8px;align-items:center;justify-content:center"><span style="font-weight:900">מספר על החולצה:</span><input type="number" id="plNum" min="1" max="99" inputmode="numeric" style="flex:0 0 90px;text-align:center"></div>
+    <div style="text-align:center;font-weight:900;margin-top:10px">צבע המדים:</div>
+    <div class="swatches" id="plColors"></div>
+    <button class="btn green" id="plSave">שמירה</button>
+    <button class="btn small danger" id="plDel">מחיקת שחקן</button>
+  </div>
+</section>
+
+<!-- ALPHABET BOOK -->
+<section id="book" class="screen">
+  <div class="top"><h1 style="margin:0;font-size:26px">📖 ספר האותיות</h1><button class="btn ghost" data-home>חזרה</button></div>
+  <p class="sub">לחצו על אות כדי לשמוע אותה</p>
+  <div class="chips" id="bkChips"></div>
+  <div class="bigcard" id="bkCard"></div>
 </section>
 
 <!-- PLAY (letters, words, penalty) -->
@@ -252,7 +296,8 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   <div class="ball" id="resBall">🏆</div>
   <h1 id="resTitle"></h1>
   <p class="sub" id="resText"></p>
-  <div class="stat" style="margin:0 0 6px"><b id="resTime">0.0s</b><span>הזמן שלכם</span></div>
+  <div id="resWho"></div>
+  <div class="stat" style="margin:0 0 6px"><b id="resTime">0.0s</b><span id="resLbl">הזמן שלכם</span></div>
   <div class="rec" id="resRec"></div>
   <div id="resCard"></div>
   <button class="btn green" id="again">שחקו שוב</button>
@@ -278,6 +323,17 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
       <button class="btn small ghost" id="lAll">הכל</button>
       <button class="btn small ghost" id="lNone">נקה</button>
     </div>
+  </div>
+
+  <div class="panel">
+    <h2>🔠 הוספת אות חדשה</h2>
+    <p style="margin:0 0 8px;font-size:14px;opacity:.9">כשהיא למדה אות חדשה, הוסיפו אותה כאן. השם והצליל ממולאים אוטומטית ואפשר לשנות.</p>
+    <div class="row">
+      <input type="text" id="nlL" maxlength="1" placeholder="C" autocomplete="off" autocapitalize="characters" style="flex:0 0 64px;text-align:center">
+      <input type="text" id="nlName" placeholder="שם בעברית" autocomplete="off" style="direction:rtl">
+      <input type="text" id="nlSound" placeholder="צליל" autocomplete="off" style="direction:rtl">
+    </div>
+    <button class="btn small" id="nlAdd" style="margin-top:8px">הוסף אות</button>
   </div>
 
   <div class="panel">
@@ -326,8 +382,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 const $ = (id) => document.getElementById(id);
 const KEY = 'letterStadium.v1';
 const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-const MODES = ['penalty', 'catch', 'memory', 'maze', 'hunt', 'letters', 'words'];
-const MODE_NAMES = { penalty: 'פנדלים', catch: 'תפיסה', memory: 'זיכרון', maze: 'מבוך', hunt: 'ציד', letters: 'אותיות', words: 'מילים' };
+const MODES = ['penalty', 'fast', 'memory', 'maze', 'hunt', 'catch', 'letters', 'words'];
 const DEFAULT_WORDS = [
   ['apple','🍎'],['ball','⚽'],['cat','🐱'],['dog','🐶'],['egg','🥚'],['fish','🐟'],['goat','🐐'],['hat','🎩'],
   ['ice cream','🍦'],['juice','🧃'],['kite','🪁'],['lion','🦁'],['moon','🌙'],['nose','👃'],['orange','🍊'],
@@ -335,21 +390,35 @@ const DEFAULT_WORDS = [
   ['watch','⌚'],['xylophone','🎹'],['yo-yo','🪀'],['zebra','🦓']
 ].map(([word, emoji], i) => ({ id: 'd' + i, word, emoji, img: '' }));
 
-/* ---------- collectible players (original cartoon characters) ---------- */
-const NAMES = ['Rocket Ron','Speedy Sam','Captain Kai','Lucky Luna','Turbo Tom','Zippy Zoe','Big Ben','Flash Finn','Dizzy Dan',
-  'Mighty Mia','Bouncy Bo','Sunny Sid','Thunder Theo','Wiggles Wes','Cool Cleo','Jumpy Jay','Cheeky Chi','Sneaky Sky',
-  'Blaze Bella','Iron Ivan','Magic Maya','Ninja Nico','Cosmo Kid','Dragon Dev','Star Stella','Golden Gus','Royal Rex',
-  'Cyber Cass','Phoenix Pip','Mega Milo'];
+// Extra words so that every learned letter has a few picture words in the alphabet book.
+const EXTRA_WORDS = [['Argentina','🇦🇷'],['arm','💪'],['ant','🐜'],['boot','👟'],['Brazil','🇧🇷'],['bear','🐻'],['net','🥅'],['nine','9️⃣'],['nut','🥜']];
+const HEB_NAME = {A:'אֵיי',B:'בִּי',C:'סִי',D:'דִּי',E:'אִי',F:'אֶף',G:"גִ'י",H:"אֵייץ'",I:'אַיי',J:"גֵ'יי",K:'קֵיי',L:'אֶל',M:'אֶם',N:'אֶן',O:'אוֹ',P:'פִּי',Q:'קְיוּ',R:'אָר',S:'אֶס',T:'טִי',U:'יוּ',V:'וִי',W:'דַבְּלְיוּ',X:'אֶקְס',Y:'וַאי',Z:'זֶד'};
+const HEB_SOUND = {A:'אַ',B:'בּ',C:'קּ',D:'דּ',E:'אֶ',F:'פ',G:'גּ',H:'ה',I:'אִ',J:"ג'",K:'קּ',L:'ל',M:'מ',N:'נ',O:'אוֹ',P:'פּ',Q:'קְוּ',R:'ר',S:'ס',T:'טּ',U:'אֻ',V:'ו',W:'וו',X:'קס',Y:'י',Z:'ז'};
+const EN_SOUND = {A:'ah',B:'buh',C:'kuh',D:'duh',E:'eh',F:'fuh',G:'guh',H:'huh',I:'ih',J:'juh',K:'kuh',L:'luh',M:'muh',N:'nuh',O:'aw',P:'puh',Q:'kwuh',R:'ruh',S:'sss',T:'tuh',U:'uh',V:'vuh',W:'wuh',X:'ks',Y:'yuh',Z:'zzz'};
+const KIT_COLORS = ['#e53935','#1e88e5','#fdd835','#43a047','#fb8c00','#8e24aa','#ffffff','#212121'];
+function shirtSVG(color, num){
+  const h = color.replace('#',''), lum = parseInt(h.slice(0,2),16) * .299 + parseInt(h.slice(2,4),16) * .587 + parseInt(h.slice(4,6),16) * .114;
+  return `<svg viewBox="0 0 100 100"><path d="M30 12 L8 28 L20 44 L28 38 L28 90 L72 90 L72 38 L80 44 L92 28 L70 12 Q50 26 30 12Z" fill="${color}" stroke="rgba(0,0,0,.4)" stroke-width="3" stroke-linejoin="round"/><text x="50" y="70" text-anchor="middle" font-size="${num > 9 ? 32 : 38}" font-weight="700" fill="${lum > 150 ? '#0d2a1c' : '#fff'}" font-family="Fredoka,sans-serif">${num}</text></svg>`;
+}
+
+/* ---------- collectible players: real footballers, drawn as generic cartoon avatars (no photos or logos) ---------- */
+const REAL = [ // [name, flag] — first 18 common, next 8 rare, last 4 gold
+  ['Harry Kane','🇬🇧'],['Jude Bellingham','🇬🇧'],['Bukayo Saka','🇬🇧'],['Son Heung-min','🇰🇷'],['Antoine Griezmann','🇫🇷'],['Thibaut Courtois','🇧🇪'],
+  ['Manuel Neuer','🇩🇪'],['Jamal Musiala','🇩🇪'],['Pedri','🇪🇸'],['Lamine Yamal','🇪🇸'],['Andrés Iniesta','🇪🇸'],['Zinedine Zidane','🇫🇷'],
+  ['Ronaldinho','🇧🇷'],['Virgil van Dijk','🇳🇱'],['Sadio Mané','🇸🇳'],['Achraf Hakimi','🇲🇦'],['Manor Solomon','🇮🇱'],['Eran Zahavi','🇮🇱'],
+  ['Kylian Mbappé','🇫🇷'],['Erling Haaland','🇳🇴'],['Neymar Jr','🇧🇷'],['Mohamed Salah','🇪🇬'],['Kevin De Bruyne','🇧🇪'],['Luka Modrić','🇭🇷'],
+  ['Robert Lewandowski','🇵🇱'],['Vinícius Jr','🇧🇷'],
+  ['Lionel Messi','🇦🇷'],['Cristiano Ronaldo','🇵🇹'],['Pelé','🇧🇷'],['Diego Maradona','🇦🇷']];
 const SKIN = ['#f6d3b3','#e8b98d','#c68b59','#8d5a3b','#f2c9a0'];
 const HAIR = ['#2b1b10','#6b3f1d','#d9a441','#c0392b','#111','#5b4bd6','#1aa5a5'];
-const CARDS = NAMES.map((name, i) => {
+const CARDS = REAL.map(([name, flag], i) => {
   const rar = i >= 26 ? 2 : i >= 18 ? 1 : 0;
-  return { id: 'p' + i, name, rar, hue: (i * 47) % 360, skin: SKIN[i % 5], hair: HAIR[(i * 3) % 7], num: (i * 7) % 98 + 1, stat: 55 + (i * 11) % 30 + rar * 10 };
+  return { id: 'p' + i, name, flag, rar, hue: (i * 47) % 360, skin: SKIN[i % 5], hair: HAIR[(i * 3) % 7], num: (i * 7) % 98 + 1 };
 });
 const RAR_COL = ['#aab4bb', '#4aa3ff', '#ffd60a'], RAR_NAME = ['רגיל', 'נדיר', 'זהב'];
 function cardSVG(c, owned) {
   if (!owned) return `<svg viewBox="0 0 120 170"><rect x="2" y="2" width="116" height="166" rx="14" fill="#2a4a3a" stroke="#4d6b5c" stroke-width="3"/><text x="60" y="100" text-anchor="middle" font-size="60" fill="#4d6b5c" font-family="Fredoka,sans-serif" font-weight="700">?</text></svg>`;
-  const col = RAR_COL[c.rar], j = `hsl(${c.hue},70%,50%)`, j2 = `hsl(${c.hue},70%,35%)`;
+  const col = RAR_COL[c.rar], j = `hsl(${c.hue},70%,50%)`, j2 = `hsl(${c.hue},70%,35%)`, long = c.name.length > 14;
   return `<svg viewBox="0 0 120 170"><defs><linearGradient id="g${c.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.rar === 2 ? '#fff3b0' : c.rar === 1 ? '#cfe8ff' : '#eef2f4'}"/><stop offset="1" stop-color="${col}"/></linearGradient></defs>
   <rect x="2" y="2" width="116" height="166" rx="14" fill="url(#g${c.id})" stroke="${col}" stroke-width="4"/>
   <text x="60" y="18" text-anchor="middle" font-size="10" font-weight="900" fill="#0d2a1c" font-family="Heebo,sans-serif">${'★'.repeat(c.rar + 1)}</text>
@@ -362,24 +431,36 @@ function cardSVG(c, owned) {
   <circle cx="51" cy="58" r="3" fill="#222"/><circle cx="69" cy="58" r="3" fill="#222"/>
   <path d="M50 68 Q60 77 70 68" fill="none" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
   <rect x="6" y="142" width="108" height="24" rx="8" fill="#0d2a1c"/>
-  <text x="60" y="154" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" font-family="Fredoka,sans-serif">${c.name}</text>
-  <text x="60" y="164" text-anchor="middle" font-size="8" fill="${col}" font-family="Fredoka,sans-serif">⚡ ${c.stat} · ${RAR_NAME[c.rar]}</text></svg>`;
+  <text x="60" y="154" text-anchor="middle" font-size="${long ? 8.5 : 10}" font-weight="700" fill="#fff" font-family="Fredoka,sans-serif"${long ? ' textLength="100" lengthAdjust="spacingAndGlyphs"' : ''}>${c.name}</text>
+  <text x="60" y="164" text-anchor="middle" font-size="8" fill="${col}" font-family="Fredoka,sans-serif">${c.flag} ${RAR_NAME[c.rar]}</text></svg>`;
 }
 
 /* ---------- storage ---------- */
-function emptyRecords(){ return { goals: 0, bestScore: 0, bestStreak: 0, matches: 0, times: {} }; }
-function defaults(){ return { letters: ALPHA.slice(), words: DEFAULT_WORDS.map(w => ({...w})), records: emptyRecords(), cards: [] }; }
+function emptyRecords(){ return { goals: 0, bestScore: 0, bestStreak: 0, matches: 0, times: {}, scores: {}, by: {} }; }
+function defaults(){ return { ver: 0, letters: ['A', 'B', 'N'], words: DEFAULT_WORDS.map(w => ({...w})), records: emptyRecords(), cards: [], players: [], me: '', letterInfo: {} }; }
 let state = defaults();
 function load(){
   try { const raw = localStorage.getItem(KEY); if (raw) { const v = sanitize(JSON.parse(raw)); if (v) state = v; } } catch (_) {}
+  state = migrate(state); save();
 }
 function save(){
   try { localStorage.setItem(KEY, JSON.stringify(state)); }
   catch (e) { toast('לא ניתן לשמור – ייתכן שהזיכרון מלא'); }
 }
 function num(n){ return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0; }
+// One-time upgrades of older saved data / backups.
+function migrate(st){
+  if ((st.ver || 0) < 2) {
+    const have = new Set(st.words.map(w => w.word.toLowerCase()));
+    EXTRA_WORDS.forEach(([word, emoji], i) => { if (!have.has(word.toLowerCase())) st.words.push({ id: 'x' + i, word, emoji, img: '' }); });
+    st.ver = 2;
+  }
+  return st;
+}
+const curPlayer = () => state.players.find(p => p.id === state.me) || state.players[0] || null;
+const who = () => { const p = curPlayer(); return p ? p.name : ''; };
 // Validates and normalises data from storage or an imported backup. Returns null if invalid.
-// Old backups (without times/cards) are accepted.
+// Old backups (without times/cards/players) are accepted.
 function sanitize(d){
   if (!d || typeof d !== 'object') return null;
   if (!Array.isArray(d.letters) || !Array.isArray(d.words) || !d.records || typeof d.records !== 'object') return null;
@@ -393,11 +474,23 @@ function sanitize(d){
     const emoji = typeof w.emoji === 'string' ? w.emoji.slice(0, 8) : '';
     words.push({ id: typeof w.id === 'string' ? w.id.slice(0, 32) : 'w' + Math.random().toString(36).slice(2), word, emoji, img });
   }
-  const r = d.records, times = {};
-  for (const m of MODES) { const t = r.times && typeof r.times === 'object' ? num(r.times[m]) : 0; if (t > 0) times[m] = t; }
+  const r = d.records, times = {}, scores = {}, by = {}, isObj = o => o && typeof o === 'object';
+  for (const m of MODES) {
+    const t = isObj(r.times) ? num(r.times[m]) : 0; if (t > 0) times[m] = t;
+    const sc = isObj(r.scores) ? num(r.scores[m]) : 0; if (sc > 0) scores[m] = sc;
+    if (isObj(r.by) && typeof r.by[m] === 'string') by[m] = r.by[m].slice(0, 14);
+  }
   const valid = new Set(CARDS.map(c => c.id));
   const cards = Array.isArray(d.cards) ? [...new Set(d.cards.filter(c => typeof c === 'string' && valid.has(c)))] : [];
-  return { letters, words, cards, records: { goals: num(r.goals), bestScore: num(r.bestScore), bestStreak: num(r.bestStreak), matches: num(r.matches), times } };
+  const players = (Array.isArray(d.players) ? d.players : []).slice(0, 8).filter(p => p && typeof p.name === 'string' && p.name.trim() && /^[a-z0-9]{1,16}$/.test(p.id) && /^#[0-9a-fA-F]{6}$/.test(p.color) && Number.isInteger(p.num) && p.num >= 1 && p.num <= 99)
+    .map(p => ({ id: p.id, name: p.name.trim().slice(0, 14), num: p.num, color: p.color }));
+  const letterInfo = {};
+  if (isObj(d.letterInfo)) for (const L of Object.keys(d.letterInfo)) {
+    const v = d.letterInfo[L]; if (/^[A-Z]$/.test(L) && isObj(v)) letterInfo[L] = { name: String(v.name || '').slice(0, 16), sound: String(v.sound || '').slice(0, 16) };
+  }
+  const me = typeof d.me === 'string' && players.some(p => p.id === d.me) ? d.me : (players[0] ? players[0].id : '');
+  return { ver: num(d.ver), letters, words, cards, players, me, letterInfo,
+    records: { goals: num(r.goals), bestScore: num(r.bestScore), bestStreak: num(r.bestStreak), matches: num(r.matches), times, scores, by } };
 }
 
 /* ---------- UI helpers ---------- */
@@ -419,20 +512,32 @@ function fmt(ms){
 }
 
 /* ---------- stopwatch ---------- */
-const clk = { acc: 0, t0: 0, on: false, paused: false, el: null, iv: 0 };
+const clk = { acc: 0, t0: 0, on: false, paused: false, el: null, iv: 0, limit: 0, onEnd: null };
 function elapsed(){ return clk.acc + (clk.on ? performance.now() - clk.t0 : 0); }
-function tickClock(){ if (clk.el) clk.el.textContent = fmt(elapsed()); }
-function startClock(el){ stopClock(); clk.acc = 0; clk.t0 = performance.now(); clk.on = true; clk.paused = false; clk.el = el; clk.iv = setInterval(tickClock, 100); tickClock(); }
-function stopClock(){ const e = elapsed(); clearInterval(clk.iv); clk.on = false; clk.acc = e; clk.paused = false; return e; }
+function tickClock(){
+  const e = elapsed(); if (clk.el) clk.el.textContent = fmt(clk.limit ? Math.max(0, clk.limit - e) : e);
+  if (clk.limit && e >= clk.limit && clk.onEnd) { const f = clk.onEnd; clk.onEnd = null; f(); }
+}
+// limit > 0 turns it into a countdown that calls onEnd when it reaches zero.
+function startClock(el, limit = 0, onEnd = null){ stopClock(); clk.acc = 0; clk.t0 = performance.now(); clk.on = true; clk.paused = false; clk.el = el; clk.limit = limit; clk.onEnd = onEnd; clk.iv = setInterval(tickClock, 100); tickClock(); }
+function stopClock(){ const e = elapsed(); clearInterval(clk.iv); clk.on = false; clk.acc = e; clk.paused = false; clk.limit = 0; clk.onEnd = null; return e; }
 document.addEventListener('visibilitychange', () => { // don't count time while the app is in the background
   if (document.hidden && clk.on) { clk.acc = elapsed(); clk.on = false; clk.paused = true; }
   else if (!document.hidden && clk.paused) { clk.t0 = performance.now(); clk.on = true; clk.paused = false; }
 });
-// Returns 'first' | 'record' | '' and stores the time if it is a new best.
+// Family records: the best result of every player is kept together with who set it.
+let lastBeat = '';
 function recordTime(mode, ms){
-  const t = state.records.times, prev = t[mode]; ms = Math.round(ms);
-  if (!prev) { t[mode] = ms; return 'first'; }
-  if (ms < prev) { t[mode] = ms; return 'record'; }
+  const t = state.records.times, by = state.records.by, prev = t[mode]; ms = Math.round(ms); lastBeat = '';
+  if (!prev) { t[mode] = ms; by[mode] = who(); return 'first'; }
+  if (ms < prev) { if (by[mode] && by[mode] !== who()) lastBeat = by[mode]; t[mode] = ms; by[mode] = who(); return 'record'; }
+  return '';
+}
+function recordScore(mode, n){
+  const t = state.records.scores, by = state.records.by, prev = t[mode]; lastBeat = '';
+  if (!n) return '';
+  if (!prev) { t[mode] = n; by[mode] = who(); return 'first'; }
+  if (n > prev) { if (by[mode] && by[mode] !== who()) lastBeat = by[mode]; t[mode] = n; by[mode] = who(); return 'record'; }
   return '';
 }
 
@@ -480,6 +585,7 @@ function speakSeq(parts){
   } catch (_) {}
 }
 function speakLetter(l){ l = String(l).toUpperCase(); speakSeq([L_NAME[l] || l.toLowerCase()]); }
+function speakSound(l){ speakSeq([EN_SOUND[String(l).toUpperCase()] || String(l).toLowerCase()]); }
 function tone(freqs, dur = .12, type = 'triangle'){
   if (!actx) return;
   try {
@@ -495,24 +601,47 @@ const sGoal = () => tone([523, 659, 784, 1046]), sMiss = () => tone([220, 165], 
 
 /* ---------- navigation / home ---------- */
 let G = null, C = null, M = null, H = null, Z = null, lastMode = 'penalty';
+const esc = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function goHome(){
   stopClock(); if (C) C.run = false; G = null; M = null; H = null; Z = null;
   try { speechSynthesis.cancel(); } catch (_) {}
   refreshHome(); show('home');
 }
 document.querySelectorAll('[data-home]').forEach(b => b.addEventListener('click', goHome));
+const GAMES = [
+  { id: 'penalty', icon: '🥅', title: 'פנדלים', desc: 'שומעים שם של אות או מילה ובועטים לשער עם האות הנכונה. 10 בעיטות, כמה שיותר מהר.', rec: 'time' },
+  { id: 'fast', icon: '⏱️', title: 'מתקפה מהירה', desc: '45 שניות. כמה שערים תספיק להבקיע? אפשר לשבור שיא פעם אחר פעם!', rec: 'score' },
+  { id: 'memory', icon: '👕', title: 'חולצות תאומות', desc: 'הופכים חולצות ומוצאים זוגות: אות גדולה ואות קטנה.', rec: 'time' },
+  { id: 'maze', icon: '🧩', title: 'מבוך אותיות', desc: 'מובילים את הכדור לשער, רק דרך האות הנכונה.', rec: 'time' },
+  { id: 'hunt', icon: '🔎', title: 'ציד האות', desc: 'מוצאים את כל האותיות והמילים שמתחילות באות המבוקשת.', rec: 'time' },
+  { id: 'catch', icon: '🧤', title: 'תופסים כדורים', desc: 'מזיזים את הכפפה ותופסים רק את האות שנשמעת.', rec: 'time' },
+  { id: 'words', icon: '🖼️', title: 'האות הפותחת', desc: 'רואים תמונה ובוחרים באיזו אות מתחילה המילה. כיף לשחק יחד!', rec: 'time' },
+  { id: 'letters', icon: '🔊', title: 'שמעו ובחרו אות', desc: 'שומעים שם של אות ובוחרים אותה.', rec: 'time' }
+];
+function recLine(g){
+  const r = state.records, v = g.rec === 'score' ? (r.scores[g.id] ? r.scores[g.id] + ' שערים' : '') : (r.times[g.id] ? fmt(r.times[g.id]) : '');
+  if (!v) return '🏆 עוד אין שיא, תהיה הראשון!';
+  const by = r.by[g.id] || '', me = who();
+  return `🏆 שיא משפחתי: ${v}` + (by ? ' – ' + by : '') + (by && by !== me ? ' · בואו נשבור אותו!' : '');
+}
 function refreshHome(){
-  const r = state.records;
+  const r = state.records, me = curPlayer();
   $('stGoals').textContent = r.goals; $('stBest').textContent = r.bestScore; $('stStreak').textContent = r.bestStreak;
   $('cardCount').textContent = state.cards.length;
-  $('timesBox').innerHTML = MODES.map(m => `<div>${MODE_NAMES[m]}<b>${r.times[m] ? fmt(r.times[m]) : '—'}</b></div>`).join('');
+  const mb = $('meBadge'); mb.textContent = '';
+  if (me) { const sv = document.createElement('span'); sv.innerHTML = shirtSVG(me.color, me.num); const nm = document.createElement('span'); nm.textContent = me.name; const sm = document.createElement('small'); sm.textContent = '▾ החלפת שחקן'; mb.append(sv, nm, sm); }
+  const gl = $('gList'); gl.textContent = '';
+  GAMES.forEach(g => {
+    const b = document.createElement('button'); b.className = 'gcard'; b.dataset.mode = g.id;
+    b.innerHTML = `<div class="gi">${g.icon}</div><h3>${esc(g.title)}</h3><p>${esc(g.desc)}</p><span class="rec2">${esc(recLine(g))}</span>`;
+    b.onclick = () => startGame(g.id); gl.appendChild(b);
+  });
 }
 function startGame(mode){
   ensureAudio(); lastMode = mode;
   if (state.letters.length < 2) { toast('יש לבחור לפחות 2 אותיות באזור ההורים'); return; }
   if (mode === 'catch') startCatch(); else if (mode === 'memory') startMemory(); else if (mode === 'hunt') startHunt(); else if (mode === 'maze') startMaze(); else startQuiz(mode);
 }
-document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => startGame(b.dataset.mode)));
 
 /* ---------- result + card rewards ---------- */
 function awardCard(r){ // r in 0..1 = how well she played; better play, better odds of rare/gold
@@ -521,10 +650,14 @@ function awardCard(r){ // r in 0..1 = how well she played; better play, better o
   let pool = unowned.filter(c => c.rar === rar); if (!pool.length) pool = unowned;
   const c = pool[Math.random() * pool.length | 0]; state.cards.push(c.id); return c;
 }
-function showResult({ ball, title, text, ms, timeNote, card, celebrate }){
+function showResult({ ball, title, text, ms, score, timeNote, card, celebrate }){
   $('resBall').textContent = ball; $('resTitle').textContent = title; $('resText').textContent = text;
-  $('resTime').textContent = ms == null ? '—' : fmt(ms);
-  $('resRec').textContent = timeNote === 'record' ? '⏱️ שיא זמן חדש! 🎉' : timeNote === 'first' ? '⏱️ זמן ראשון נקבע!' : '';
+  if (score != null) { $('resTime').textContent = score; $('resLbl').textContent = 'שערים ב-45 שניות'; }
+  else { $('resTime').textContent = ms == null ? '—' : fmt(ms); $('resLbl').textContent = 'הזמן שלכם'; }
+  const me = curPlayer(), w = $('resWho'); w.textContent = '';
+  if (me) { const sv = document.createElement('span'); sv.innerHTML = shirtSVG(me.color, me.num); const n = document.createElement('b'); n.textContent = me.name; w.append(sv, n); }
+  $('resRec').textContent = timeNote === 'record' ? '🏆 שיא משפחתי חדש!' + (lastBeat ? ' ניצחתם את ' + lastBeat + '!' : '') : timeNote === 'first' ? '🏆 שיא משפחתי ראשון נקבע!' : '';
+  lastBeat = '';
   const rc = $('resCard'); rc.textContent = '';
   if (card) { const d = document.createElement('div'); d.className = 'pop'; d.innerHTML = cardSVG(card, true); const t = document.createElement('div'); t.className = 'rec'; t.textContent = 'קלף חדש: ' + card.name + '!'; rc.append(d, t); }
   if (celebrate || timeNote === 'record' || card) { confetti(); sGoal(); }
@@ -533,6 +666,7 @@ function showResult({ ball, title, text, ms, timeNote, card, celebrate }){
 $('again').onclick = () => startGame(lastMode);
 $('resCards').onclick = () => { renderCards(); show('cards'); };
 $('toCards').onclick = () => { renderCards(); show('cards'); };
+$('toBook').onclick = () => { renderBook(); show('book'); };
 function renderCards(){
   $('cardsSub').textContent = `אספתם ${state.cards.length} מתוך ${CARDS.length} שחקנים. משחקים כדי לזכות בעוד!`;
   $('cardGrid').innerHTML = CARDS.map(c => `<div>${cardSVG(c, state.cards.includes(c.id))}</div>`).join('');
@@ -541,25 +675,28 @@ function renderCards(){
 /* ---------- quiz games: letters, words, penalty ---------- */
 const ROUNDS = 10;
 function padTo(a, n){ let out = a.slice(); while (out.length < n && a.length) out = out.concat(shuffle(a)); return out; }
+const isPen = (m) => m === 'penalty' || m === 'fast';
 function startQuiz(mode){
   const letters = state.letters.slice();
   const wpool = state.words.filter(w => letters.includes(w.word[0].toUpperCase()));
   if (mode === 'words' && !wpool.length) { toast('אין מילים שמתאימות לאותיות הפעילות'); return; }
   G = { mode, letters, lpool: padTo(shuffle(letters), ROUNDS), wpool: padTo(shuffle(wpool), ROUNDS),
         i: 0, goals: 0, streak: 0, bestStreak: 0, lock: false, rounds: ROUNDS };
-  $('play').classList.toggle('pen', mode === 'penalty');
-  show('play'); startClock($('clock')); nextQ();
+  $('play').classList.toggle('pen', isPen(mode));
+  if (mode === 'fast') { G.rounds = 1e9; show('play'); startClock($('clock'), 45000, finishFast); }
+  else { show('play'); startClock($('clock')); }
+  nextQ();
 }
-function board(){ $('board').textContent = `⚽ ${G.goals} : ${G.i - G.goals} · ${Math.min(G.i + 1, G.rounds)}/${G.rounds}`; }
+function board(){ $('board').textContent = G.mode === 'fast' ? `⚽ ${G.goals}` : `⚽ ${G.goals} : ${G.i - G.goals} · ${Math.min(G.i + 1, G.rounds)}/${G.rounds}`; }
 function nextQ(){
-  if (!G) return;
+  if (!G || G.over) return;
   if (G.i >= G.rounds) return finishQuiz();
   G.lock = false; $('msg').textContent = ''; board();
-  const pen = G.mode === 'penalty';
+  const pen = isPen(G.mode);
   const kind = (G.mode === 'words' || (pen && G.i % 2 === 1 && G.wpool.length)) ? 'word' : 'letter';
   let item, answer;
-  if (kind === 'word') { item = G.wpool[G.i]; answer = item.word[0].toUpperCase(); }
-  else { item = G.lpool[G.i]; answer = item; }
+  if (kind === 'word') { item = G.wpool[G.i % G.wpool.length]; answer = item.word[0].toUpperCase(); }
+  else { item = G.lpool[G.i % G.lpool.length]; answer = item; }
   G.answer = answer;
   const wrong = shuffle(G.letters.filter(l => l !== answer)).slice(0, 3); // only the selected letters
   const p = $('prompt'); p.textContent = '';
@@ -587,10 +724,11 @@ function nextQ(){
   } else resetFly();
 }
 function afterAnswer(ok){
-  if (ok) { G.goals++; G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak); sGoal(); confetti(); speakLetter(G.answer); }
-  else { G.streak = 0; sMiss(); }
-  $('msg').textContent = ok ? 'גוווווול! ⚽🎉' : 'השוער תפס! נסו בבעיטה הבאה 🧤';
-  G.i++; setTimeout(nextQ, ok ? 1500 : 1900);
+  const fast = G.mode === 'fast';
+  if (ok) { G.goals++; G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak); sGoal(); if (!fast) { confetti(); speakLetter(G.answer); } }
+  else { G.streak = 0; sMiss(); if (fast) clk.acc += 2000; } // a miss costs 2 seconds in Fast Attack
+  $('msg').textContent = ok ? 'גוווווול! ⚽🎉' : fast ? '−2 שניות' : 'השוער תפס! נסו בבעיטה הבאה 🧤';
+  G.i++; setTimeout(nextQ, fast ? (ok ? 650 : 900) : (ok ? 1500 : 1900));
 }
 function placeFly(){ // ball sits under the answers, glove in the middle of them (absolute inside #play)
   const pl = $('play'), pr = pl.getBoundingClientRect(), o = $('opts').getBoundingClientRect();
@@ -604,7 +742,7 @@ function resetFly(){
 // The ball flies to the tapped answer. On a goal the glove dives to another answer; on a miss it dives to the ball.
 function shoot(btn, l){
   if (G.lock) return; G.lock = true;
-  const pen = G.mode === 'penalty', ok = l === G.answer;
+  const pen = isPen(G.mode), ok = l === G.answer;
   if (!pen) placeFly();
   const ballEl = $(pen ? 'pball' : 'fball'), gkEl = $(pen ? 'pgk' : 'fgk'), all = [...(pen ? $('tgts') : $('opts')).children];
   const c = (r) => [r.left + r.width / 2, r.top + r.height / 2], base = pen ? '0px' : '-50%';
@@ -616,6 +754,13 @@ function shoot(btn, l){
   gkEl.style.transform = `translate(calc(-50% + ${ex - gx}px), calc(-50% + ${ey - gy}px)) rotate(${ex < gx ? -25 : 25}deg)`;
   if (ok) btn.classList.add('good'); else { btn.classList.add('bad', 'shake'); all.forEach(b => { if (b.dataset.l === G.answer) b.classList.add('good'); }); }
   afterAnswer(ok);
+}
+function finishFast(){
+  if (!G || G.over) return; G.over = true; G.lock = true; stopClock();
+  const r = state.records; r.goals += G.goals; r.matches++; r.bestStreak = Math.max(r.bestStreak, G.bestStreak);
+  const note = recordScore('fast', G.goals), card = awardCard(Math.min(1, G.goals / 12));
+  showResult({ ball: G.goals >= 12 ? '🏆' : G.goals >= 7 ? '🥈' : '⚽', title: G.goals >= 12 ? 'מתקפה מטורפת!' : G.goals >= 7 ? 'כל הכבוד!' : 'עוד סיבוב לשבור שיא?',
+    text: `הבקעתם ${G.goals} שערים ב-45 שניות. רצף הצלחות: ${G.bestStreak}.`, score: G.goals, timeNote: note, card, celebrate: G.goals >= 7 });
 }
 function finishQuiz(){
   const ms = stopClock(), r = state.records, prevBest = r.bestScore, perfect = G.goals === G.rounds;
@@ -782,7 +927,7 @@ function startMemory(){
   const cols = [3, 4, 5].find(c => cards.length % c === 0 && cards.length / c <= 4) || 4;
   const g = $('mGrid'); g.textContent = ''; g.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
   cards.forEach((c, i) => {
-    const b = document.createElement('button'); b.className = 'mc'; b.textContent = '⚽'; b.onclick = () => flip(i, b); c.el = b; g.appendChild(b);
+    const b = document.createElement('button'); b.className = 'mc'; b.textContent = '👕'; b.onclick = () => flip(i, b); c.el = b; g.appendChild(b);
   });
   $('mMoves').textContent = '🃏 0'; show('memory'); startClock($('mClock'));
 }
@@ -798,7 +943,7 @@ function flip(i, b){
     if (M.matched === M.pairs) setTimeout(finishMemory, 600);
   } else {
     M.lock = true;
-    setTimeout(() => { [a, d].forEach(x => { x.el.className = 'mc'; x.el.textContent = '⚽'; }); M.open = []; M.lock = false; }, 900);
+    setTimeout(() => { [a, d].forEach(x => { x.el.className = 'mc'; x.el.textContent = '👕'; }); M.open = []; M.lock = false; }, 900);
   }
 }
 function finishMemory(){
@@ -868,6 +1013,87 @@ $('wAdd').onclick = () => {
 };
 $('resetRec').onclick = () => { if (confirm('לאפס את כל השיאים (כולל שיאי זמן)? הקלפים יישארו.')) { state.records = emptyRecords(); save(); refreshHome(); toast('השיאים אופסו'); } };
 
+/* add a newly learned letter (name + sound in Hebrew are auto-filled but editable) */
+const hebName = (L) => (state.letterInfo[L] && state.letterInfo[L].name) || HEB_NAME[L] || '';
+const hebSound = (L) => (state.letterInfo[L] && state.letterInfo[L].sound) || HEB_SOUND[L] || '';
+$('nlL').addEventListener('input', () => {
+  const L = $('nlL').value.trim().toUpperCase(); $('nlL').value = L;
+  if (/^[A-Z]$/.test(L)) { $('nlName').value = hebName(L); $('nlSound').value = hebSound(L); }
+});
+$('nlAdd').onclick = () => {
+  const L = $('nlL').value.trim().toUpperCase();
+  if (!/^[A-Z]$/.test(L)) { toast('יש להזין אות אחת באנגלית (A–Z)'); return; }
+  state.letterInfo[L] = { name: $('nlName').value.trim().slice(0, 16) || HEB_NAME[L], sound: $('nlSound').value.trim().slice(0, 16) || HEB_SOUND[L] };
+  if (!state.letters.includes(L)) state.letters.push(L);
+  $('nlL').value = $('nlName').value = $('nlSound').value = ''; save(); renderParents(); toast('האות ' + L + ' נוספה ✓');
+};
+
+/* ---------- alphabet book ---------- */
+let bookLetter = '';
+function mk(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function renderBook(L){
+  const letters = state.letters.slice().sort(); if (!letters.length) { $('bkChips').textContent = ''; $('bkCard').textContent = 'אין אותיות פעילות. הוסיפו אותיות באזור ההורים.'; return; }
+  if (L) bookLetter = L; if (!letters.includes(bookLetter)) bookLetter = letters[0];
+  const chips = $('bkChips'); chips.textContent = '';
+  letters.forEach(l => { const b = mk('button', 'chip' + (l === bookLetter ? ' sel' : ''), l + l.toLowerCase()); b.onclick = () => { renderBook(l); speakLetter(l); }; chips.appendChild(b); });
+  const card = $('bkCard'); card.textContent = '';
+  const big = mk('button', 'bigL'); big.append(mk('span', 'up', bookLetter), mk('span', 'lo', bookLetter.toLowerCase())); big.onclick = () => speakLetter(bookLetter);
+  const nameB = mk('button', 'speakbtn', '🔊 שם האות: ' + hebName(bookLetter)); nameB.onclick = () => speakLetter(bookLetter);
+  const soundB = mk('button', 'speakbtn', '🔊 הצליל: ' + hebSound(bookLetter)); soundB.onclick = () => speakSound(bookLetter);
+  const grid = mk('div', 'wcards');
+  state.words.filter(w => w.word[0].toUpperCase() === bookLetter).forEach(w => {
+    const wc = mk('button', 'wc');
+    if (w.img) { const im = document.createElement('img'); im.alt = ''; im.src = w.img; wc.appendChild(im); } else wc.appendChild(mk('span', 'we', w.emoji || '❓'));
+    const t = mk('span', ''); t.append(mk('span', 'hl', w.word[0]), document.createTextNode(w.word.slice(1))); wc.appendChild(t);
+    wc.onclick = () => speak(w.word); grid.appendChild(wc);
+  });
+  card.append(big, nameB, soundB, grid);
+}
+
+/* ---------- players: name, shirt number, kit colour (family members can join and break each other's records) ---------- */
+let PE = null; // editor state { id|null, color }
+function renderPlayers(){
+  const list = $('plList'); list.textContent = '';
+  state.players.forEach(p => {
+    const row = mk('div', 'pitem' + (p.id === state.me ? ' sel' : ''));
+    const sv = mk('span'); sv.innerHTML = shirtSVG(p.color, p.num);
+    const nm = mk('button', 'pn', p.name); nm.onclick = () => { state.me = p.id; save(); refreshHome(); show('home'); };
+    const ed = mk('button', 'ed', '✏️'); ed.onclick = () => openEditor(p.id);
+    row.append(sv, nm, ed); list.appendChild(row);
+  });
+  const add = mk('button', 'btn blue', '➕ שחקן חדש (אמא, אבא, אח...)'); add.onclick = () => openEditor(null); list.appendChild(add);
+}
+function previewShirt(){ $('plPreview').innerHTML = shirtSVG(PE.color, Math.min(99, Math.max(1, parseInt($('plNum').value, 10) || 0)) || '?'); }
+function openEditor(id){
+  const p = state.players.find(x => x.id === id) || null;
+  PE = { id: p ? p.id : null, color: p ? p.color : KIT_COLORS[state.players.length % KIT_COLORS.length] };
+  $('plEditTitle').textContent = p ? 'עריכת שחקן' : state.players.length ? 'שחקן חדש' : 'יוצרים את השחקן שלך!';
+  $('plName').value = p ? p.name : ''; $('plNum').value = p ? p.num : '';
+  $('plDel').style.display = p && state.players.length > 1 ? '' : 'none';
+  $('plTitle').textContent = state.players.length ? 'מי משחק?' : 'ברוכים הבאים!';
+  $('plBack').style.display = state.players.length ? '' : 'none';
+  renderPlayers(); renderSwatches(); previewShirt(); show('players');
+}
+function renderSwatches(){
+  const sw = $('plColors'); sw.textContent = '';
+  KIT_COLORS.forEach(c => { const b = mk('button', 'sw' + (c === PE.color ? ' sel' : '')); b.style.background = c; b.setAttribute('aria-label', c); b.onclick = () => { PE.color = c; renderSwatches(); previewShirt(); }; sw.appendChild(b); });
+}
+$('plNum').addEventListener('input', previewShirt);
+$('plSave').onclick = () => {
+  const name = $('plName').value.trim().slice(0, 14), n = parseInt($('plNum').value, 10);
+  if (!name) { toast('איך קוראים לשחקן?'); return; }
+  if (!(n >= 1 && n <= 99)) { toast('בחרו מספר חולצה בין 1 ל-99'); return; }
+  if (PE.id) { const p = state.players.find(x => x.id === PE.id); p.name = name; p.num = n; p.color = PE.color; }
+  else { const id = 'p' + Date.now().toString(36); state.players.push({ id, name, num: n, color: PE.color }); state.me = id; }
+  save(); refreshHome(); show('home'); toast('נשמר ✓');
+};
+$('plDel').onclick = () => {
+  if (state.players.length < 2 || !PE.id || !confirm('למחוק את השחקן?')) return;
+  state.players = state.players.filter(p => p.id !== PE.id); if (state.me === PE.id) state.me = state.players[0].id; save(); refreshHome(); show('home');
+};
+$('plBack').onclick = () => { refreshHome(); show('home'); };
+$('meBadge').onclick = () => openEditor(state.me);
+
 /* ---------- backup ---------- */
 $('exp').onclick = async () => {
   const payload = { app: 'letter-stadium', version: 1, exportedAt: new Date().toISOString(), data: state };
@@ -891,13 +1117,14 @@ $('impFile').onchange = async (e) => {
     const j = JSON.parse(await f.text());
     if (!j || j.app !== 'letter-stadium' || typeof j.version !== 'number' || j.version > 1) throw new Error('format');
     const v = sanitize(j.data); if (!v) throw new Error('data');
-    if (!confirm(`לשחזר גיבוי? ${v.words.length} מילים, ${v.cards.length} קלפים, ${v.records.goals} שערים. הנתונים הנוכחיים יוחלפו.`)) return;
-    state = v; save(); renderParents(); refreshHome(); toast('הגיבוי שוחזר בהצלחה ✓');
+    if (!confirm(`לשחזר גיבוי? ${v.players.length} שחקנים, ${v.words.length} מילים, ${v.cards.length} קלפים. הנתונים הנוכחיים יוחלפו.`)) return;
+    state = migrate(v); save(); renderParents(); refreshHome(); if (!state.players.length) openEditor(null); toast('הגיבוי שוחזר בהצלחה ✓');
   } catch (_) { toast('הקובץ אינו גיבוי תקין של המשחק'); }
 };
 
 /* ---------- init ---------- */
 load(); refreshHome();
+if (!state.players.length) openEditor(null);
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 })();
 </script>
