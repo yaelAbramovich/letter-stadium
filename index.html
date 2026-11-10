@@ -186,7 +186,7 @@ h2{margin:10px 0;font-size:22px}
 .w{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.12);border-radius:14px;padding:8px}
 .w .th{width:44px;height:44px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;overflow:hidden}
 .w .th img{width:100%;height:100%;object-fit:cover}
-.w .nm{flex:1;font-family:'Fredoka',sans-serif;font-size:20px;direction:ltr;text-align:left}
+.w .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Fredoka',sans-serif;font-size:20px;direction:ltr;text-align:left}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12px;padding:12px;background:#fff;color:var(--ink);direction:ltr}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:24px;z-index:10}
@@ -1108,9 +1108,14 @@ function renderParents(){
     const th = document.createElement('div'); th.className = 'th';
     if (w.img) { const im = document.createElement('img'); im.alt = ''; im.src = w.img; th.appendChild(im); } else th.textContent = w.emoji || '❓';
     const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = w.word + (w.he ? '  –  ' + w.he : '');
+    const pic = document.createElement('label'); pic.className = 'btn small ghost'; pic.style.margin = '0'; pic.title = 'החלפת תמונה'; pic.append('📷');
+    const fi = document.createElement('input'); fi.type = 'file'; fi.accept = 'image/*'; fi.hidden = true; pic.appendChild(fi);
+    fi.onchange = () => { const f = fi.files[0]; if (!f) return; resizeImage(f, d => { w.img = d; save(); renderParents(); toast('התמונה עודכנה ✓'); }); };
+    let clr = null;
+    if (w.img) { clr = document.createElement('button'); clr.className = 'btn small ghost'; clr.style.margin = '0'; clr.textContent = '↩'; clr.title = 'חזרה לאימוג׳י'; clr.onclick = () => { w.img = ''; save(); renderParents(); toast('התמונה הוסרה'); }; }
     const del = document.createElement('button'); del.className = 'btn small danger'; del.textContent = '🗑'; del.style.margin = 0;
     del.onclick = () => { state.words = state.words.filter(x => x.id !== w.id); save(); renderParents(); };
-    row.append(th, nm, del); wl.appendChild(row);
+    row.append(th, nm, pic); if (clr) row.appendChild(clr); row.appendChild(del); wl.appendChild(row);
   });
 }
 function sayCandidates(L){
@@ -1137,17 +1142,21 @@ $('lAll').onclick = () => { state.letters = ALPHA.slice(); save(); renderParents
 $('lNone').onclick = () => { state.letters = []; save(); renderParents(); };
 
 let pendingImg = '';
+// Reads an image file, scales it down (max 256px) and returns a small JPEG data URL.
+function resizeImage(file, done){
+  const url = URL.createObjectURL(file), im = new Image();
+  im.onload = () => {
+    const m = 256, k = Math.min(1, m / Math.max(im.width, im.height)), c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(im.width * k)); c.height = Math.max(1, Math.round(im.height * k));
+    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url); done(c.toDataURL('image/jpeg', .8));
+  };
+  im.onerror = () => { URL.revokeObjectURL(url); toast('לא ניתן לקרוא את התמונה'); };
+  im.src = url;
+}
 $('wFile').onchange = (e) => {
   const f = e.target.files[0]; if (!f) return;
-  const url = URL.createObjectURL(f), im = new Image();
-  im.onload = () => {
-    const m = 256, s = Math.min(1, m / Math.max(im.width, im.height)), c = document.createElement('canvas');
-    c.width = Math.round(im.width * s); c.height = Math.round(im.height * s);
-    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-    pendingImg = c.toDataURL('image/jpeg', .8); $('wFileName').textContent = '✓ ' + f.name.slice(0, 18); URL.revokeObjectURL(url);
-  };
-  im.onerror = () => { toast('לא ניתן לקרוא את התמונה'); URL.revokeObjectURL(url); };
-  im.src = url;
+  resizeImage(f, d => { pendingImg = d; $('wFileName').textContent = '✓ ' + f.name.slice(0, 18); });
 };
 $('wAdd').onclick = () => {
   const word = $('wInput').value.trim();
