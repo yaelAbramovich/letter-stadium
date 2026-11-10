@@ -159,6 +159,15 @@ h2{margin:10px 0;font-size:22px}
 .wcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px;direction:ltr}
 .wc{background:#fff;color:var(--ink);border:2px solid #d3e2d7;border-radius:16px;padding:10px 4px;font-family:'Fredoka',sans-serif;font-weight:600;font-size:20px;display:flex;flex-direction:column;align-items:center;gap:2px}
 .wc .we{font-size:42px;line-height:1.1}.wc img{max-height:46px;max-width:90%;border-radius:8px}.wc .hl{color:#dc5646;font-weight:700}
+/* word flashcards */
+.fcard{background:#f6f8f4;color:var(--ink);border-radius:26px;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:18px;text-align:center;border:0;width:100%;box-shadow:0 6px 0 #b8c4bd;flex-shrink:0}
+.fcard .fw{font-family:'Fredoka',sans-serif;font-weight:700;font-size:56px;line-height:1.1;direction:ltr;word-break:break-word}
+.fcard .fe{font-size:110px;line-height:1}.fcard img{max-height:180px;max-width:100%;border-radius:16px;object-fit:contain}
+.fcard .fh{font-size:17px;font-weight:700;opacity:.8}
+.fmarks{display:flex;gap:14px;margin-top:14px;flex-shrink:0}
+.fmarks .btn{margin:0;font-size:46px;padding:12px;flex:1;width:auto;min-width:0}
+.fmarks .btn.red{background:var(--red);color:#fff;box-shadow:0 6px 0 #a02020}
+.fmarks[hidden]{display:none}
 /* cards */
 .cardgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .cardgrid svg,.pop svg{width:100%;height:auto;display:block}
@@ -289,6 +298,20 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   </div>
   <div class="hud" style="justify-content:center;gap:10px"><span>עקבו רק אחרי:</span><span class="tg" id="zTarget">A a</span><span>לשער 🥅</span></div>
   <div class="mgrid" id="zGrid"></div>
+</section>
+
+<!-- FLASHCARDS -->
+<section id="flash" class="screen">
+  <div class="top">
+    <button class="btn ghost" data-home>✖ יציאה</button>
+    <div class="scoreboard" id="fcOk">✓ 0</div>
+    <div class="scoreboard" id="fcProg">1/10</div>
+  </div>
+  <button class="fcard" id="fcCard"></button>
+  <div class="fmarks" id="fcMarks" hidden>
+    <button class="btn red" id="fcNo" aria-label="לא ידעתי">✗</button>
+    <button class="btn green" id="fcYes" aria-label="ידעתי">✓</button>
+  </div>
 </section>
 
 <!-- RESULT -->
@@ -607,10 +630,10 @@ function tone(freqs, dur = .12, type = 'triangle'){
 const sGoal = () => tone([523, 659, 784, 1046]), sMiss = () => tone([220, 165], .2, 'sawtooth'), sPop = () => tone([880], .08);
 
 /* ---------- navigation / home ---------- */
-let G = null, C = null, M = null, H = null, Z = null, lastMode = 'penalty';
+let G = null, C = null, M = null, H = null, Z = null, FL = null, lastMode = 'penalty';
 const esc = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function goHome(){
-  stopClock(); if (C) C.run = false; G = null; M = null; H = null; Z = null;
+  stopClock(); if (C) C.run = false; G = null; M = null; H = null; Z = null; FL = null;
   try { speechSynthesis.cancel(); } catch (_) {}
   refreshHome(); show('home');
 }
@@ -622,9 +645,11 @@ const GAMES = [
   { id: 'maze', icon: '🧩', title: 'מבוך אותיות', desc: 'מובילים את הכדור לשער, רק דרך האות הנכונה.', rec: 'time' },
   { id: 'hunt', icon: '🔎', title: 'ציד האות', desc: 'מוצאים את כל האותיות והמילים שמתחילות באות המבוקשת.', rec: 'time' },
   { id: 'catch', icon: '🧤', title: 'תופסים כדורים', desc: 'מזיזים את הכפפה ותופסים רק את האות שנשמעת.', rec: 'time' },
+  { id: 'flash', icon: '🗂️', title: 'כרטיסיות מילים', desc: 'שומעים מילה, מקישים כדי לראות את התמונה, ומסמנים ✓ אם ידעתם או ✗ אם לא.', rec: 'none' },
   { id: 'words', icon: '🖼️', title: 'האות הפותחת', desc: 'רואים תמונה ובוחרים באיזו אות מתחילה המילה. כיף לשחק יחד!', rec: 'time' }
 ];
 function recLine(g){
+  if (g.rec === 'none') return '⭐ בלי לחץ – לומדים בקצב שלך';
   const r = state.records, v = g.rec === 'score' ? (r.scores[g.id] ? r.scores[g.id] + ' שערים' : '') : (r.times[g.id] ? fmt(r.times[g.id]) : '');
   if (!v) return '🏆 עוד אין שיא, תהיה הראשון!';
   const by = r.by[g.id] || '', me = who();
@@ -646,7 +671,7 @@ function refreshHome(){
 function startGame(mode){
   ensureAudio(); lastMode = mode;
   if (state.letters.length < 2) { toast('יש לבחור לפחות 2 אותיות באזור ההורים'); return; }
-  if (mode === 'catch') startCatch(); else if (mode === 'memory') startMemory(); else if (mode === 'hunt') startHunt(); else if (mode === 'maze') startMaze(); else startQuiz(mode);
+  if (mode === 'catch') startCatch(); else if (mode === 'memory') startMemory(); else if (mode === 'hunt') startHunt(); else if (mode === 'maze') startMaze(); else if (mode === 'flash') startFlash(); else startQuiz(mode);
 }
 
 /* ---------- result + card rewards ---------- */
@@ -656,9 +681,9 @@ function awardCard(r){ // r in 0..1 = how well she played; better play, better o
   let pool = unowned.filter(c => c.rar === rar); if (!pool.length) pool = unowned;
   const c = pool[Math.random() * pool.length | 0]; state.cards.push(c.id); return c;
 }
-function showResult({ ball, title, text, ms, score, timeNote, card, celebrate }){
+function showResult({ ball, title, text, ms, score, scoreLbl, timeNote, card, celebrate }){
   $('resBall').textContent = ball; $('resTitle').textContent = title; $('resText').textContent = text;
-  if (score != null) { $('resTime').textContent = score; $('resLbl').textContent = 'שערים ב-45 שניות'; }
+  if (score != null) { $('resTime').textContent = score; $('resLbl').textContent = scoreLbl || 'שערים ב-45 שניות'; }
   else { $('resTime').textContent = ms == null ? '—' : fmt(ms); $('resLbl').textContent = 'הזמן שלכם'; }
   const me = curPlayer(), w = $('resWho'); w.textContent = '';
   if (me) { const sv = document.createElement('span'); sv.innerHTML = shirtSVG(me.color, me.num); const n = document.createElement('b'); n.textContent = me.name; w.append(sv, n); }
@@ -923,6 +948,44 @@ function mzHandle(e){ // works for taps and for dragging a finger along the path
   } else {
     Z.mist++; $('zMist').textContent = '❌ ' + Z.mist; sMiss(); t.classList.add('bad', 'shake'); setTimeout(() => t.classList.remove('bad', 'shake'), 500);
   }
+}
+
+/* ---------- word flashcards: hear the word, tap to see the picture, mark ✓ / ✗ ---------- */
+function startFlash(){
+  const pool = shuffle(state.words.filter(w => state.letters.includes(w.word[0].toUpperCase())));
+  if (!pool.length) { toast('אין מילים שמתאימות לאותיות הפעילות'); return; }
+  FL = { words: pool.slice(0, 10), i: 0, ok: 0, missed: [], shown: false };
+  show('flash'); flashNext();
+}
+function flashNext(){
+  if (!FL) return;
+  if (FL.i >= FL.words.length) return finishFlash();
+  const w = FL.words[FL.i]; FL.shown = false;
+  $('fcProg').textContent = (FL.i + 1) + '/' + FL.words.length; $('fcOk').textContent = '✓ ' + FL.ok;
+  const c = $('fcCard'); c.textContent = '';
+  c.append(mk('div', 'fw', w.word), mk('div', 'fh', '🔊 לחצו כדי לראות את התמונה'));
+  $('fcMarks').hidden = true; setTimeout(() => FL && FL.words[FL.i] === w && speak(w.word), 250);
+}
+$('fcCard').onclick = () => {
+  if (!FL || FL.i >= FL.words.length) return;
+  const w = FL.words[FL.i]; speak(w.word);
+  if (FL.shown) return; FL.shown = true;
+  const c = $('fcCard'); c.textContent = '';
+  if (w.img) { const im = document.createElement('img'); im.alt = ''; im.src = w.img; c.appendChild(im); } else c.appendChild(mk('div', 'fe', w.emoji || '❓'));
+  c.append(mk('div', 'fw', w.word), mk('div', 'fh', 'ידעתם? סמנו ✓ או ✗'));
+  $('fcMarks').hidden = false;
+};
+function flashMark(ok){
+  if (!FL || !FL.shown) return;
+  const w = FL.words[FL.i]; if (ok) { FL.ok++; sPop(); } else { FL.missed.push(w.word); sMiss(); }
+  FL.shown = false; FL.i++; flashNext();
+}
+$('fcYes').onclick = () => flashMark(true); $('fcNo').onclick = () => flashMark(false);
+function finishFlash(){
+  const n = FL.words.length, ok = FL.ok, r = state.records; r.matches++;
+  const card = awardCard(ok / n), miss = FL.missed.length ? ' כדאי לתרגל: ' + FL.missed.join(', ') + '.' : ' מושלם!';
+  showResult({ ball: ok === n ? '🏆' : ok >= n * .6 ? '🥈' : '📚', title: ok === n ? 'ידעתם הכל!' : ok >= n * .6 ? 'כל הכבוד!' : 'ממשיכים ללמוד!',
+    text: `ידעתם ${ok} מתוך ${n} מילים.` + miss, score: ok, scoreLbl: 'מילים שידעתם', timeNote: '', card, celebrate: ok >= n * .6 });
 }
 
 /* ---------- memory cards ---------- */
