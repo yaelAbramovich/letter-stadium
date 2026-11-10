@@ -622,8 +622,7 @@ const GAMES = [
   { id: 'maze', icon: '🧩', title: 'מבוך אותיות', desc: 'מובילים את הכדור לשער, רק דרך האות הנכונה.', rec: 'time' },
   { id: 'hunt', icon: '🔎', title: 'ציד האות', desc: 'מוצאים את כל האותיות והמילים שמתחילות באות המבוקשת.', rec: 'time' },
   { id: 'catch', icon: '🧤', title: 'תופסים כדורים', desc: 'מזיזים את הכפפה ותופסים רק את האות שנשמעת.', rec: 'time' },
-  { id: 'words', icon: '🖼️', title: 'האות הפותחת', desc: 'רואים תמונה ובוחרים באיזו אות מתחילה המילה. כיף לשחק יחד!', rec: 'time' },
-  { id: 'letters', icon: '🔊', title: 'שמעו ובחרו אות', desc: 'שומעים שם של אות ובוחרים אותה.', rec: 'time' }
+  { id: 'words', icon: '🖼️', title: 'האות הפותחת', desc: 'רואים תמונה ובוחרים באיזו אות מתחילה המילה. כיף לשחק יחד!', rec: 'time' }
 ];
 function recLine(g){
   const r = state.records, v = g.rec === 'score' ? (r.scores[g.id] ? r.scores[g.id] + ' שערים' : '') : (r.times[g.id] ? fmt(r.times[g.id]) : '');
