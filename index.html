@@ -397,6 +397,15 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   </div>
 
   <div class="panel">
+    <h2>📊 כיסוי מילים</h2>
+    <p id="covTxt" style="margin:0 0 6px;font-weight:900"></p>
+    <p id="covNew" style="margin:0 0 6px;font-size:14px"></p>
+    <p id="covHard" style="margin:0 0 8px;font-size:14px"></p>
+    <p style="margin:0 0 8px;font-size:13px;opacity:.85">המשחקים בוחרים קודם את המילים שהכי פחות ראתה, ומחזירים מילים שטעתה בהן.</p>
+    <button class="btn small danger" id="resetStats">איפוס סטטיסטיקת מילים</button>
+  </div>
+
+  <div class="panel">
     <h2>גיבוי נתונים</h2>
     <p style="margin:0 0 8px;font-size:14px;opacity:.9">אפליקציה שמותקנת על המסך הראשי שומרת נתונים בנפרד מ‑Safari. מומלץ לייצא גיבוי לפני שמוחקים את האפליקציה או עוברים למכשיר אחר. הגיבוי כולל גם שיאים וקלפים.</p>
     <div class="row">
@@ -496,7 +505,7 @@ function cardSVG(c, owned) {
 
 /* ---------- storage ---------- */
 function emptyRecords(){ return { goals: 0, bestScore: 0, bestStreak: 0, matches: 0, times: {}, scores: {}, by: {} }; }
-function defaults(){ return { ver: 0, letters: ['A', 'B', 'N'], words: DEFAULT_WORDS.map(w => ({...w})), records: emptyRecords(), cards: [], players: [], me: '', letterInfo: {} }; }
+function defaults(){ return { ver: 0, letters: ['A', 'B', 'N'], words: DEFAULT_WORDS.map(w => ({...w})), records: emptyRecords(), cards: [], players: [], me: '', letterInfo: {}, wstats: {} }; }
 let state = defaults();
 function load(){
   try { const raw = localStorage.getItem(KEY); if (raw) { const v = sanitize(JSON.parse(raw)); if (v) state = v; } } catch (_) {}
@@ -559,7 +568,11 @@ function sanitize(d){
     const v = d.letterInfo[L]; if (/^[A-Z]$/.test(L) && isObj(v)) letterInfo[L] = { name: String(v.name || '').slice(0, 16), sound: String(v.sound || '').slice(0, 16), say: /^(ay|ey)$/i.test(String(v.say || '').trim()) ? '' : String(v.say || '').replace(/[^A-Za-z. ]/g, '').slice(0, 12) };
   }
   const me = typeof d.me === 'string' && players.some(p => p.id === d.me) ? d.me : (players[0] ? players[0].id : '');
-  return { ver: num(d.ver), letters, words, cards, players, me, letterInfo,
+  const wstats = {};
+  if (isObj(d.wstats)) for (const k of Object.keys(d.wstats).slice(0, 400)) {
+    const v = d.wstats[k]; if (/^[a-z][a-z '\-]{0,19}$/.test(k) && isObj(v)) wstats[k] = { n: Math.min(9999, num(v.n)), m: Math.min(9999, num(v.m)) };
+  }
+  return { ver: num(d.ver), letters, words, cards, players, me, letterInfo, wstats,
     records: { goals: num(r.goals), bestScore: num(r.bestScore), bestStreak: num(r.bestStreak), matches: num(r.matches), times, scores, by } };
 }
 
@@ -674,7 +687,7 @@ const sGoal = () => tone([523, 659, 784, 1046]), sMiss = () => tone([220, 165], 
 let G = null, C = null, M = null, H = null, Z = null, FL = null, lastMode = 'penalty';
 const esc = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function goHome(){
-  stopClock(); if (C) C.run = false; G = null; M = null; H = null; Z = null; FL = null;
+  save(); stopClock(); if (C) C.run = false; G = null; M = null; H = null; Z = null; FL = null;
   try { speechSynthesis.cancel(); } catch (_) {}
   refreshHome(); show('home');
 }
@@ -747,7 +760,23 @@ function renderCards(){
 
 /* ---------- quiz games: letters, words, penalty ---------- */
 const ROUNDS = 10;
-function padTo(a, n){ let out = a.slice(); while (out.length < n && a.length) out = out.concat(shuffle(a)); return out; }
+// Repeats a list up to n items (reshuffling each round) without putting the same item twice in a row.
+function padTo(a, n){
+  let out = a.slice(); while (out.length < n && a.length) out = out.concat(shuffle(a));
+  for (let i = 1; i < out.length - 1; i++) if (out[i] === out[i - 1]) [out[i], out[i + 1]] = [out[i + 1], out[i]];
+  return out;
+}
+// Spaced coverage: words she has seen least come first, words she missed come back sooner, a little randomness keeps it fresh.
+const wkey = (w) => w.word.toLowerCase();
+function smartOrder(pool){
+  const st = state.wstats;
+  return pool.map(w => { const x = st[wkey(w)] || { n: 0, m: 0 }; return { w, k: x.n - 2 * Math.min(x.m, 3) + Math.random() * 1.5 }; })
+    .sort((a, b) => a.k - b.k).map(o => o.w);
+}
+function noteWord(word, ok){
+  const k = String(word).toLowerCase(), st = state.wstats[k] || (state.wstats[k] = { n: 0, m: 0 });
+  st.n++; st.m = ok ? Math.max(0, st.m - 1) : st.m + 1;
+}
 const isPen = (m) => m === 'penalty' || m === 'fast';
 function startQuiz(mode){
   const letters = state.letters.slice();
@@ -755,7 +784,8 @@ function startQuiz(mode){
   if (mode === 'words' && !wpool.length) { toast('אין מילים שמתאימות לאותיות הפעילות'); return; }
   const vpool = state.words.filter(w => w.he);
   if (mode === 'vocab' && new Set(vpool.map(w => w.he)).size < 4) { toast('צריך לפחות 4 מילים עם תרגום בעברית'); return; }
-  G = { mode, letters, lpool: padTo(shuffle(letters), ROUNDS), wpool: padTo(shuffle(wpool), ROUNDS), vpool: padTo(shuffle(vpool), ROUNDS),
+  const padN = mode === 'fast' ? 60 : ROUNDS; // Fast Attack needs a long list
+  G = { mode, letters, lpool: padTo(shuffle(letters), padN), wpool: padTo(smartOrder(wpool), padN), vpool: padTo(smartOrder(vpool), padN),
         i: 0, goals: 0, streak: 0, bestStreak: 0, lock: false, rounds: ROUNDS };
   $('play').classList.toggle('pen', isPen(mode));
   if (mode === 'fast') { G.rounds = 1e9; show('play'); startClock($('clock'), 45000, finishFast); }
@@ -773,7 +803,7 @@ function nextQ(){
   if (kind === 'vocab') { item = G.vpool[G.i % G.vpool.length]; answer = item.he; G.cur = item.word; }
   else if (kind === 'word') { item = G.wpool[G.i % G.wpool.length]; answer = item.word[0].toUpperCase(); }
   else { item = G.lpool[G.i % G.lpool.length]; answer = item; }
-  G.answer = answer;
+  G.answer = answer; G.curW = kind === 'letter' ? '' : item.word;
   const wrong = kind === 'vocab' ? shuffle([...new Set(state.words.filter(w => w.he && w.he !== answer).map(w => w.he))]).slice(0, 3)
     : shuffle(G.letters.filter(l => l !== answer)).slice(0, 3); // only the selected letters
   const p = $('prompt'); p.textContent = '';
@@ -807,6 +837,7 @@ function nextQ(){
   } else resetFly();
 }
 function afterAnswer(ok){
+  if (G.curW) noteWord(G.curW, ok);
   const fast = G.mode === 'fast';
   if (ok) { G.goals++; G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak); sGoal(); if (!fast) { confetti(); if (G.mode === 'vocab') speak(G.cur); else speakLetter(G.answer); } }
   else { G.streak = 0; sMiss(); if (fast) clk.acc += 2000; } // a miss costs 2 seconds in Fast Attack
@@ -927,9 +958,9 @@ function finishFind(mode, mistakes, text){
 /* ---------- letter hunt: tap every target letter (N, n) and every word that starts with it ---------- */
 function startHunt(){
   const T = pickTarget(), letters = state.letters, first = w => w.word[0].toUpperCase();
-  const tiles = shuffle(state.words.filter(w => first(w) === T)).slice(0, 2).map(w => ({ ok: true, word: w }));
+  const tiles = smartOrder(state.words.filter(w => first(w) === T)).slice(0, 2).map(w => ({ ok: true, word: w }));
   for (let k = 0; tiles.length < 6; k++) tiles.push({ ok: true, t: k % 2 ? T.toLowerCase() : T });
-  shuffle(state.words.filter(w => first(w) !== T && letters.includes(first(w)))).slice(0, 2).forEach(w => tiles.push({ ok: false, word: w }));
+  smartOrder(state.words.filter(w => first(w) !== T && letters.includes(first(w)))).slice(0, 2).forEach(w => tiles.push({ ok: false, word: w }));
   const others = letters.filter(l => l !== T);
   while (tiles.length < 12) { const l = others[Math.random() * others.length | 0]; tiles.push({ ok: false, t: Math.random() < .5 ? l : l.toLowerCase() }); }
   H = { T, found: 0, mist: 0, total: 6 };
@@ -945,11 +976,11 @@ function startHunt(){
     b.onclick = () => {
       if (!H || b.classList.contains('good')) return;
       if (t.ok) {
-        b.classList.add('good'); H.found++; $('hLeft').textContent = H.found + '/' + H.total; sPop();
+        if (t.word) noteWord(t.word.word, true); b.classList.add('good'); H.found++; $('hLeft').textContent = H.found + '/' + H.total; sPop();
         if (t.word) speak(t.word.word); else speakLetter(H.T);
         if (H.found === H.total) setTimeout(() => finishFind('hunt', H.mist, `מצאתם את כל ה-${H.T}!`), 500);
       } else {
-        H.mist++; sMiss(); b.classList.add('bad', 'shake'); setTimeout(() => b.classList.remove('bad', 'shake'), 600);
+        if (t.word) noteWord(t.word.word, false); H.mist++; sMiss(); b.classList.add('bad', 'shake'); setTimeout(() => b.classList.remove('bad', 'shake'), 600);
       }
     };
     g.appendChild(b);
@@ -1007,7 +1038,7 @@ function startFlash(){ $('fcPick').classList.add('on'); }
 function startFlashSet(cat){
   $('fcPick').classList.remove('on');
   const base = cat === 'letters' ? state.words.filter(w => state.letters.includes(w.word[0].toUpperCase())) : cat === 'all' ? state.words : state.words.filter(w => w.cat === cat);
-  const pool = shuffle(base);
+  const pool = smartOrder(base);
   if (!pool.length) { toast('אין מילים בסט הזה'); return;}
   FL = { words: pool.slice(0, 10), i: 0, ok: 0, missed: [], shown: false };
   show('flash'); flashNext();
@@ -1032,7 +1063,7 @@ $('fcCard').onclick = () => {
 };
 function flashMark(ok){
   if (!FL || !FL.shown) return;
-  const w = FL.words[FL.i]; if (ok) { FL.ok++; sPop(); } else { FL.missed.push(w.word); sMiss(); }
+  const w = FL.words[FL.i]; noteWord(w.word, ok); if (ok) { FL.ok++; sPop(); } else { FL.missed.push(w.word); sMiss(); }
   FL.shown = false; FL.i++; flashNext();
 }
 document.querySelectorAll('[data-fset]').forEach(b => b.addEventListener('click', () => startFlashSet(b.dataset.fset)));
@@ -1094,8 +1125,16 @@ $('gateOk').onclick = () => {
 $('gateA').addEventListener('keydown', e => { if (e.key === 'Enter') $('gateOk').click(); });
 $('pBack').onclick = goHome;
 
+function renderCoverage(){
+  const st = state.wstats, seen = state.words.filter(w => (st[wkey(w)] || {}).n > 0), unseen = state.words.filter(w => !((st[wkey(w)] || {}).n > 0));
+  const hard = state.words.filter(w => (st[wkey(w)] || {}).m >= 2);
+  $('covTxt').textContent = `ראתה ${seen.length} מתוך ${state.words.length} מילים`;
+  $('covNew').textContent = unseen.length ? 'עוד לא ראתה: ' + unseen.slice(0, 30).map(w => w.word).join(', ') + (unseen.length > 30 ? '…' : '') : '✓ ראתה את כל המילים!';
+  $('covHard').textContent = hard.length ? 'קשות לה כרגע: ' + hard.map(w => w.word).join(', ') : '';
+}
+$('resetStats').onclick = () => { if (confirm('לאפס את הסטטיסטיקה של המילים?')) { state.wstats = {}; save(); renderCoverage(); toast('אופס'); } };
 function renderParents(){
-  renderVoices();
+  renderVoices(); renderCoverage();
   const lp = $('letterPick'); lp.textContent = '';
   ALPHA.forEach(l => {
     const b = document.createElement('button'); b.textContent = l; b.className = state.letters.includes(l) ? 'sel' : '';
