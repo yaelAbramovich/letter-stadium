@@ -168,6 +168,10 @@ h2{margin:10px 0;font-size:22px}
 .fmarks .btn{margin:0;font-size:46px;padding:12px;flex:1;width:auto;min-width:0}
 .fmarks .btn.red{background:var(--red);color:#fff;box-shadow:0 6px 0 #a02020}
 .fmarks[hidden]{display:none}
+/* vocabulary */
+.opt.heb{font-family:'Heebo',sans-serif;font-size:24px;line-height:1.15;padding:22px 6px;direction:rtl;min-height:84px}
+.fcard .fhe{font-size:30px;font-weight:900;color:#1b6b45;direction:rtl}
+.wc .whe{font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;opacity:.75;direction:rtl}
 /* cards */
 .cardgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .cardgrid svg,.pop svg{width:100%;height:auto;display:block}
@@ -300,6 +304,16 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   <div class="mgrid" id="zGrid"></div>
 </section>
 
+<div class="modal" id="fcPick"><div class="box">
+  <h2 style="margin-top:0">באיזה סט נתרגל? 🗂️</h2>
+  <button class="btn" data-fset="all">כל המילים</button>
+  <button class="btn" data-fset="noun">שמות עצם</button>
+  <button class="btn" data-fset="adj">תארים וצבעים</button>
+  <button class="btn" data-fset="phrase">ביטויים ומשפטים</button>
+  <button class="btn green" data-fset="letters">לפי האותיות הפעילות</button>
+  <button class="btn ghost" style="color:var(--ink);border-color:#aaa" id="fcPickNo">ביטול</button>
+</div></div>
+
 <!-- FLASHCARDS -->
 <section id="flash" class="screen">
   <div class="top">
@@ -371,6 +385,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
       <input type="text" id="wInput" placeholder="word (English)" maxlength="20" autocapitalize="none" autocomplete="off" spellcheck="false">
       <input type="text" id="wEmoji" placeholder="🙂" maxlength="4" style="max-width:70px;text-align:center">
     </div>
+    <div class="row" style="margin-top:8px"><input type="text" id="wHe" placeholder="תרגום בעברית" maxlength="24" autocomplete="off" style="direction:rtl"></div>
     <div class="row" style="margin-top:8px;align-items:center">
       <label class="btn small ghost" style="margin:4px">📷 תמונה
         <input type="file" id="wFile" accept="image/*" hidden>
@@ -411,7 +426,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 const $ = (id) => document.getElementById(id);
 const KEY = 'letterStadium.v1';
 const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-const MODES = ['penalty', 'fast', 'memory', 'maze', 'hunt', 'catch', 'letters', 'words'];
+const MODES = ['penalty', 'fast', 'memory', 'maze', 'hunt', 'catch', 'vocab', 'letters', 'words'];
 const DEFAULT_WORDS = [
   ['apple','🍎'],['ball','⚽'],['cat','🐱'],['dog','🐶'],['egg','🥚'],['fish','🐟'],['goat','🐐'],['hat','🎩'],
   ['ice cream','🍦'],['juice','🧃'],['kite','🪁'],['lion','🦁'],['moon','🌙'],['nose','👃'],['orange','🍊'],
@@ -421,6 +436,21 @@ const DEFAULT_WORDS = [
 
 // Extra words so that every learned letter has a few picture words in the alphabet book.
 const EXTRA_WORDS = [['Argentina','🇦🇷'],['arm','💪'],['ant','🐜'],['boot','👟'],['Brazil','🇧🇷'],['bear','🐻'],['net','🥅'],['nine','9️⃣'],['nut','🥜']];
+// School vocabulary: [word, emoji, Hebrew, category]
+const VOCAB = [
+  ['apple','🍎','תפוח','noun'],['baby','👶','תינוק / תינוקת','noun'],['bag','👜','תיק','noun'],['book','📖','ספר','noun'],['box','📦','קופסה','noun'],
+  ['brother','👦','אח','noun'],['computer','💻','מחשב','noun'],['dad','👨‍👧','אבא','noun'],['desk','🪑','שולחן כתיבה','noun'],['dog','🐶','כלב','noun'],
+  ['door','🚪','דלת','noun'],['duck','🦆','ברווז','noun'],['gift','🎁','מתנה','noun'],['girl','👧','ילדה','noun'],['grandma','👵','סבתא','noun'],
+  ['grandpa','👴','סבא','noun'],['man','👨','איש / גבר','noun'],['mouth','👄','פה','noun'],['nose','👃','אף','noun'],['notebook','📓','מחברת','noun'],
+  ['sister','👭','אחות','noun'],['woman','👩','אישה','noun'],
+  ['big','🐘','גדול','adj'],['small','🤏','קטן','adj'],['black','⚫','שחור','adj'],['blue','🔵','כחול','adj'],['gray','🩶','אפור','adj'],
+  ['green','🟢','ירוק','adj'],['orange','🟠','כתום','adj'],['red','🔴','אדום','adj'],['yellow','🟡','צהוב','adj'],['bad','👎','רע','adj'],['sad','😢','עצוב','adj'],
+  ['I am','🙋','אני...','phrase'],['I like','👍','אני אוהב...','phrase'],['I love','❤️','אני אוהב...','phrase'],['I don\'t like','🙅','אני לא אוהב...','phrase'],
+  ['Look','👀','הסתכלו / תראה!','phrase'],['Open the door','🔓','פתחו את הדלת','phrase'],['Close the window','🪟','סגרו את החלון','phrase']
+];
+const HEB_OLD = { ball:'כדור',cat:'חתול',egg:'ביצה',fish:'דג',goat:'עז',hat:'כובע','ice cream':'גלידה',juice:'מיץ',kite:'עפיפון',lion:'אריה',moon:'ירח',
+  pizza:'פיצה',queen:'מלכה',rabbit:'ארנב',sun:'שמש',tiger:'נמר',umbrella:'מטריה',violin:'כינור',watch:'שעון',xylophone:'קסילופון','yo-yo':'יו-יו',zebra:'זברה',
+  argentina:'ארגנטינה',arm:'זרוע',ant:'נמלה',boot:'מגף',brazil:'ברזיל',bear:'דוב',net:'רשת',nine:'תשע',nut:'אגוז' };
 const HEB_NAME = {A:'אֵיי',B:'בִּי',C:'סִי',D:'דִּי',E:'אִי',F:'אֶף',G:"גִ'י",H:"אֵייץ'",I:'אַיי',J:"גֵ'יי",K:'קֵיי',L:'אֶל',M:'אֶם',N:'אֶן',O:'אוֹ',P:'פִּי',Q:'קְיוּ',R:'אָר',S:'אֶס',T:'טִי',U:'יוּ',V:'וִי',W:'דַבְּלְיוּ',X:'אֶקְס',Y:'וַאי',Z:'זֶד'};
 const HEB_SOUND = {A:'אַ',B:'בּ',C:'קּ',D:'דּ',E:'אֶ',F:'פ',G:'גּ',H:'ה',I:'אִ',J:"ג'",K:'קּ',L:'ל',M:'מ',N:'נ',O:'אוֹ',P:'פּ',Q:'קְוּ',R:'ר',S:'ס',T:'טּ',U:'אֻ',V:'ו',W:'וו',X:'קס',Y:'י',Z:'ז'};
 const EN_SOUND = {A:'ah',B:'buh',C:'kuh',D:'duh',E:'eh',F:'fuh',G:'guh',H:'huh',I:'ih',J:'juh',K:'kuh',L:'luh',M:'muh',N:'nuh',O:'aw',P:'puh',Q:'kwuh',R:'ruh',S:'sss',T:'tuh',U:'uh',V:'vuh',W:'wuh',X:'ks',Y:'yuh',Z:'zzz'};
@@ -484,6 +514,16 @@ function migrate(st){
     EXTRA_WORDS.forEach(([word, emoji], i) => { if (!have.has(word.toLowerCase())) st.words.push({ id: 'x' + i, word, emoji, img: '' }); });
     st.ver = 2;
   }
+  if (st.ver < 3) { // vocabulary with Hebrew translations
+    const idx = new Map(st.words.map(w => [w.word.toLowerCase(), w]));
+    VOCAB.forEach(([word, emoji, he, cat], i) => {
+      const w = idx.get(word.toLowerCase());
+      if (w) { if (!w.he) w.he = he; if (!w.cat) w.cat = cat; if (word === 'orange' && !w.img) w.emoji = emoji; }
+      else st.words.push({ id: 'v' + i, word, emoji, img: '', he, cat });
+    });
+    st.words.forEach(w => { if (!w.he && HEB_OLD[w.word.toLowerCase()]) w.he = HEB_OLD[w.word.toLowerCase()]; });
+    st.ver = 3;
+  }
   return st;
 }
 const curPlayer = () => state.players.find(p => p.id === state.me) || state.players[0] || null;
@@ -501,7 +541,8 @@ function sanitize(d){
     if (!/^[A-Za-z][A-Za-z '\-]*$/.test(word)) continue;
     const img = typeof w.img === 'string' && /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(w.img) ? w.img : '';
     const emoji = typeof w.emoji === 'string' ? w.emoji.slice(0, 8) : '';
-    words.push({ id: typeof w.id === 'string' ? w.id.slice(0, 32) : 'w' + Math.random().toString(36).slice(2), word, emoji, img });
+    const he = typeof w.he === 'string' ? w.he.slice(0, 24) : '', cat = ['noun', 'adj', 'phrase'].includes(w.cat) ? w.cat : '';
+    words.push({ id: typeof w.id === 'string' ? w.id.slice(0, 32) : 'w' + Math.random().toString(36).slice(2), word, emoji, img, he, cat });
   }
   const r = d.records, times = {}, scores = {}, by = {}, isObj = o => o && typeof o === 'object';
   for (const m of MODES) {
@@ -646,6 +687,7 @@ const GAMES = [
   { id: 'hunt', icon: '🔎', title: 'ציד האות', desc: 'מוצאים את כל האותיות והמילים שמתחילות באות המבוקשת.', rec: 'time' },
   { id: 'catch', icon: '🧤', title: 'תופסים כדורים', desc: 'מזיזים את הכפפה ותופסים רק את האות שנשמעת.', rec: 'time' },
   { id: 'flash', icon: '🗂️', title: 'כרטיסיות מילים', desc: 'שומעים מילה, מקישים כדי לראות את התמונה, ומסמנים ✓ אם ידעתם או ✗ אם לא.', rec: 'none' },
+  { id: 'vocab', icon: '🔤', title: 'מה פירוש המילה?', desc: 'רואים ושומעים מילה באנגלית ובוחרים את התרגום הנכון בעברית.', rec: 'time' },
   { id: 'words', icon: '🖼️', title: 'האות הפותחת', desc: 'רואים תמונה ובוחרים באיזו אות מתחילה המילה. כיף לשחק יחד!', rec: 'time' }
 ];
 function recLine(g){
@@ -711,7 +753,9 @@ function startQuiz(mode){
   const letters = state.letters.slice();
   const wpool = state.words.filter(w => letters.includes(w.word[0].toUpperCase()));
   if (mode === 'words' && !wpool.length) { toast('אין מילים שמתאימות לאותיות הפעילות'); return; }
-  G = { mode, letters, lpool: padTo(shuffle(letters), ROUNDS), wpool: padTo(shuffle(wpool), ROUNDS),
+  const vpool = state.words.filter(w => w.he);
+  if (mode === 'vocab' && new Set(vpool.map(w => w.he)).size < 4) { toast('צריך לפחות 4 מילים עם תרגום בעברית'); return; }
+  G = { mode, letters, lpool: padTo(shuffle(letters), ROUNDS), wpool: padTo(shuffle(wpool), ROUNDS), vpool: padTo(shuffle(vpool), ROUNDS),
         i: 0, goals: 0, streak: 0, bestStreak: 0, lock: false, rounds: ROUNDS };
   $('play').classList.toggle('pen', isPen(mode));
   if (mode === 'fast') { G.rounds = 1e9; show('play'); startClock($('clock'), 45000, finishFast); }
@@ -724,16 +768,24 @@ function nextQ(){
   if (G.i >= G.rounds) return finishQuiz();
   G.lock = false; $('msg').textContent = ''; board();
   const pen = isPen(G.mode);
-  const kind = (G.mode === 'words' || (pen && G.i % 2 === 1 && G.wpool.length)) ? 'word' : 'letter';
+  const kind = G.mode === 'vocab' ? 'vocab' : (G.mode === 'words' || (pen && G.i % 2 === 1 && G.wpool.length)) ? 'word' : 'letter';
   let item, answer;
-  if (kind === 'word') { item = G.wpool[G.i % G.wpool.length]; answer = item.word[0].toUpperCase(); }
+  if (kind === 'vocab') { item = G.vpool[G.i % G.vpool.length]; answer = item.he; G.cur = item.word; }
+  else if (kind === 'word') { item = G.wpool[G.i % G.wpool.length]; answer = item.word[0].toUpperCase(); }
   else { item = G.lpool[G.i % G.lpool.length]; answer = item; }
   G.answer = answer;
-  const wrong = shuffle(G.letters.filter(l => l !== answer)).slice(0, 3); // only the selected letters
+  const wrong = kind === 'vocab' ? shuffle([...new Set(state.words.filter(w => w.he && w.he !== answer).map(w => w.he))]).slice(0, 3)
+    : shuffle(G.letters.filter(l => l !== answer)).slice(0, 3); // only the selected letters
   const p = $('prompt'); p.textContent = '';
   const sp = document.createElement('button'); sp.className = 'speak'; sp.textContent = '🔊';
   const hint = document.createElement('div'); hint.className = 'hint';
-  if (kind === 'letter') {
+  if (kind === 'vocab') {
+    if (item.img) { const im = document.createElement('img'); im.alt = ''; im.src = item.img; p.appendChild(im); }
+    else { const e = document.createElement('div'); e.className = 'pic'; e.textContent = item.emoji || '❓'; p.appendChild(e); }
+    const wd = document.createElement('div'); wd.className = 'big'; wd.style.fontSize = item.word.length > 9 ? '34px' : '48px'; wd.textContent = item.word;
+    hint.textContent = 'מה פירוש המילה?'; sp.onclick = () => speak(item.word); p.append(wd, hint, sp);
+    setTimeout(() => speak(item.word), 250);
+  } else if (kind === 'letter') {
     const big = document.createElement('div'); big.className = 'big'; big.textContent = '?';
     hint.textContent = 'איזו אות שמעתם?'; sp.onclick = () => speakLetter(answer); p.append(big, hint, sp);
     setTimeout(() => speakLetter(answer), 250);
@@ -745,7 +797,7 @@ function nextQ(){
   }
   const host = pen ? $('tgts') : $('opts'); host.textContent = '';
   shuffle([answer, ...wrong]).forEach(l => {
-    const b = document.createElement('button'); b.className = pen ? 'tgt' : 'opt';
+    const b = document.createElement('button'); b.className = pen ? 'tgt' : kind === 'vocab' ? 'opt heb' : 'opt';
     b.textContent = kind === 'letter' && Math.random() < .5 ? l.toLowerCase() : l;
     b.dataset.l = l; b.onclick = () => shoot(b, l); host.appendChild(b);
   });
@@ -756,7 +808,7 @@ function nextQ(){
 }
 function afterAnswer(ok){
   const fast = G.mode === 'fast';
-  if (ok) { G.goals++; G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak); sGoal(); if (!fast) { confetti(); speakLetter(G.answer); } }
+  if (ok) { G.goals++; G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak); sGoal(); if (!fast) { confetti(); if (G.mode === 'vocab') speak(G.cur); else speakLetter(G.answer); } }
   else { G.streak = 0; sMiss(); if (fast) clk.acc += 2000; } // a miss costs 2 seconds in Fast Attack
   $('msg').textContent = ok ? 'גוווווול! ⚽🎉' : fast ? '−2 שניות' : 'השוער תפס! נסו בבעיטה הבאה 🧤';
   G.i++; setTimeout(nextQ, fast ? (ok ? 650 : 900) : (ok ? 1500 : 1900));
@@ -951,9 +1003,12 @@ function mzHandle(e){ // works for taps and for dragging a finger along the path
 }
 
 /* ---------- word flashcards: hear the word, tap to see the picture, mark ✓ / ✗ ---------- */
-function startFlash(){
-  const pool = shuffle(state.words.filter(w => state.letters.includes(w.word[0].toUpperCase())));
-  if (!pool.length) { toast('אין מילים שמתאימות לאותיות הפעילות'); return; }
+function startFlash(){ $('fcPick').classList.add('on'); }
+function startFlashSet(cat){
+  $('fcPick').classList.remove('on');
+  const base = cat === 'letters' ? state.words.filter(w => state.letters.includes(w.word[0].toUpperCase())) : cat === 'all' ? state.words : state.words.filter(w => w.cat === cat);
+  const pool = shuffle(base);
+  if (!pool.length) { toast('אין מילים בסט הזה'); return;}
   FL = { words: pool.slice(0, 10), i: 0, ok: 0, missed: [], shown: false };
   show('flash'); flashNext();
 }
@@ -972,7 +1027,7 @@ $('fcCard').onclick = () => {
   if (FL.shown) return; FL.shown = true;
   const c = $('fcCard'); c.textContent = '';
   if (w.img) { const im = document.createElement('img'); im.alt = ''; im.src = w.img; c.appendChild(im); } else c.appendChild(mk('div', 'fe', w.emoji || '❓'));
-  c.append(mk('div', 'fw', w.word), mk('div', 'fh', 'ידעתם? סמנו ✓ או ✗'));
+  c.append(mk('div', 'fw', w.word)); if (w.he) c.appendChild(mk('div', 'fhe', w.he)); c.appendChild(mk('div', 'fh', 'ידעתם? סמנו ✓ או ✗'));
   $('fcMarks').hidden = false;
 };
 function flashMark(ok){
@@ -980,6 +1035,8 @@ function flashMark(ok){
   const w = FL.words[FL.i]; if (ok) { FL.ok++; sPop(); } else { FL.missed.push(w.word); sMiss(); }
   FL.shown = false; FL.i++; flashNext();
 }
+document.querySelectorAll('[data-fset]').forEach(b => b.addEventListener('click', () => startFlashSet(b.dataset.fset)));
+$('fcPickNo').onclick = () => $('fcPick').classList.remove('on');
 $('fcYes').onclick = () => flashMark(true); $('fcNo').onclick = () => flashMark(false);
 function finishFlash(){
   const n = FL.words.length, ok = FL.ok, r = state.records; r.matches++;
@@ -1050,7 +1107,7 @@ function renderParents(){
     const row = document.createElement('div'); row.className = 'w';
     const th = document.createElement('div'); th.className = 'th';
     if (w.img) { const im = document.createElement('img'); im.alt = ''; im.src = w.img; th.appendChild(im); } else th.textContent = w.emoji || '❓';
-    const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = w.word;
+    const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = w.word + (w.he ? '  –  ' + w.he : '');
     const del = document.createElement('button'); del.className = 'btn small danger'; del.textContent = '🗑'; del.style.margin = 0;
     del.onclick = () => { state.words = state.words.filter(x => x.id !== w.id); save(); renderParents(); };
     row.append(th, nm, del); wl.appendChild(row);
@@ -1097,8 +1154,8 @@ $('wAdd').onclick = () => {
   if (!/^[A-Za-z][A-Za-z '\-]*$/.test(word)) { toast('יש להזין מילה באנגלית'); return; }
   const emoji = $('wEmoji').value.trim();
   if (!emoji && !pendingImg) { toast('הוסיפו אימוג׳י או תמונה'); return; }
-  state.words.push({ id: 'w' + Date.now().toString(36), word, emoji, img: pendingImg });
-  pendingImg = ''; $('wInput').value = ''; $('wEmoji').value = ''; $('wFileName').textContent = ''; $('wFile').value = '';
+  state.words.push({ id: 'w' + Date.now().toString(36), word, emoji, img: pendingImg, he: $('wHe').value.trim().slice(0, 24), cat: '' });
+  pendingImg = ''; $('wInput').value = ''; $('wEmoji').value = ''; $('wHe').value = ''; $('wFileName').textContent = ''; $('wFile').value = '';
   save(); renderParents(); toast('המילה נוספה ✓');
 };
 $('resetRec').onclick = () => { if (confirm('לאפס את כל השיאים (כולל שיאי זמן)? הקלפים יישארו.')) { state.records = emptyRecords(); save(); refreshHome(); toast('השיאים אופסו'); } };
@@ -1135,6 +1192,7 @@ function renderBook(L){
     const wc = mk('button', 'wc');
     if (w.img) { const im = document.createElement('img'); im.alt = ''; im.src = w.img; wc.appendChild(im); } else wc.appendChild(mk('span', 'we', w.emoji || '❓'));
     const t = mk('span', ''); t.append(mk('span', 'hl', w.word[0]), document.createTextNode(w.word.slice(1))); wc.appendChild(t);
+    if (w.he) wc.appendChild(mk('span', 'whe', w.he));
     wc.onclick = () => speak(w.word); grid.appendChild(wc);
   });
   card.append(big, nameB, soundB, grid);
