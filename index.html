@@ -198,6 +198,31 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
 .shake{animation:shake .35s}
 @keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.cnt{background:rgba(0,0,0,.25);border-radius:16px;padding:10px;margin:0 0 6px;text-align:center;font-weight:900;font-size:15px;flex-shrink:0}
+.cnt small{display:block;font-weight:400;font-size:12px;opacity:.8}
+.cnt div{display:flex;gap:8px;justify-content:center;margin-top:8px}
+.cnt button{flex:1;border:0;border-radius:12px;padding:9px 0;font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;background:#fff;color:var(--ink);box-shadow:0 3px 0 #b8c4bd;opacity:.7}
+.cnt button.on{background:var(--gold);opacity:1}
+.ctabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;flex-shrink:0}
+.ctabs button{flex:0 0 auto;border:0;border-radius:14px;padding:8px 12px;font-weight:900;font-size:14px;background:rgba(255,255,255,.85);color:var(--ink);white-space:nowrap}
+.ctabs button.on{background:var(--gold);box-shadow:0 3px 0 #b39500}
+.ctabs button:disabled{opacity:.45}
+.cdone{background:var(--gold);color:var(--ink);border-radius:14px;padding:8px;font-weight:900;text-align:center;margin-bottom:10px}
+.mega{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;overflow:hidden;color:#fff;
+  background:radial-gradient(circle at 50% 38%,#ffe066 0,#ff9f1c 38%,#7a1fa2 100%)}
+.mega.on{display:flex}
+.mega::before{content:'';position:absolute;inset:-60%;background:repeating-conic-gradient(rgba(255,255,255,.2) 0 9deg,transparent 9deg 18deg);animation:megaSpin 16s linear infinite}
+.mega>*{position:relative}
+@keyframes megaSpin{to{transform:rotate(360deg)}}
+@keyframes megaBoing{50%{transform:scale(1.22) rotate(-8deg)}}
+@keyframes megaBob{50%{transform:translateY(-12px)}}
+.mega .trophy{font-size:110px;line-height:1.1;animation:megaBoing 1s ease-in-out infinite}
+.mega h1{font-size:32px;margin:6px 0;text-shadow:0 3px 0 rgba(0,0,0,.35)}
+.mega p{font-size:18px;font-weight:700;margin:4px 0 10px;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.mega .fan{display:flex;gap:8px;justify-content:center;margin:6px 0 12px;direction:ltr}
+.mega .fan div{width:84px;animation:megaBob 1.2s ease-in-out infinite}
+.mega .fan div:nth-child(2){animation-delay:.2s}.mega .fan div:nth-child(3){animation-delay:.4s}
+.mega .fan svg{width:100%;height:auto;display:block;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))}
 .parent-link{margin-top:auto;background:none;border:0;color:rgba(255,255,255,.6);font-size:14px;padding:14px;flex-shrink:0}
 </style>
 </head>
@@ -213,9 +238,10 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
     <div class="stat"><b id="stBest">0</b><span>שיא משחק</span></div>
     <div class="stat"><b id="stStreak">0</b><span>רצף שיא</span></div>
   </div>
+  <div class="cnt"><span>כמה סיבובים בכל משחק?</span><small>פנדלים, תופסים כדורים, כרטיסיות ועוד</small><div id="cntBtns"></div></div>
   <div class="glist" id="gList"></div>
   <button class="btn" id="toBook" style="background:#7fd1ff;box-shadow:0 6px 0 #3a97cc">📖 ספר האותיות</button>
-  <button class="btn" id="toCards" style="background:#ff9ff3;box-shadow:0 6px 0 #c06bb5">⭐ קלפי השחקנים שלי (<span id="cardCount">0</span>/30)</button>
+  <button class="btn" id="toCards" style="background:#ff9ff3;box-shadow:0 6px 0 #c06bb5">⭐ הקלפים שלי</button>
   <button class="parent-link" id="toParents">⚙️ אזור הורים</button>
 </section>
 
@@ -345,6 +371,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 <!-- CARDS -->
 <section id="cards" class="screen">
   <div class="top"><h1 style="margin:0;font-size:26px">⭐ הקלפים שלי</h1><button class="btn ghost" data-home>חזרה</button></div>
+  <div class="ctabs" id="cardTabs"></div>
   <p class="sub" id="cardsSub"></p>
   <div class="cardgrid" id="cardGrid"></div>
 </section>
@@ -427,6 +454,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
     <button class="btn small ghost" style="color:var(--ink);border-color:#aaa" id="gateNo">ביטול</button>
   </div>
 </div></div>
+<div class="mega" id="mega"></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -469,43 +497,134 @@ function shirtSVG(color, num){
   return `<svg viewBox="0 0 100 100"><path d="M30 12 L8 28 L20 44 L28 38 L28 90 L72 90 L72 38 L80 44 L92 28 L70 12 Q50 26 30 12Z" fill="${color}" stroke="rgba(0,0,0,.4)" stroke-width="3" stroke-linejoin="round"/><text x="50" y="70" text-anchor="middle" font-size="${num > 9 ? 32 : 38}" font-weight="700" fill="${lum > 150 ? '#0d2a1c' : '#fff'}" font-family="Fredoka,sans-serif">${num}</text></svg>`;
 }
 
-/* ---------- collectible players: real footballers, drawn as generic cartoon avatars (no photos or logos) ---------- */
-const REAL = [ // [name, flag] — first 18 common, next 8 rare, last 4 gold
-  ['Harry Kane','🇬🇧'],['Jude Bellingham','🇬🇧'],['Bukayo Saka','🇬🇧'],['Son Heung-min','🇰🇷'],['Antoine Griezmann','🇫🇷'],['Thibaut Courtois','🇧🇪'],
-  ['Manuel Neuer','🇩🇪'],['Jamal Musiala','🇩🇪'],['Pedri','🇪🇸'],['Lamine Yamal','🇪🇸'],['Andrés Iniesta','🇪🇸'],['Zinedine Zidane','🇫🇷'],
-  ['Ronaldinho','🇧🇷'],['Virgil van Dijk','🇳🇱'],['Sadio Mané','🇸🇳'],['Achraf Hakimi','🇲🇦'],['Manor Solomon','🇮🇱'],['Eran Zahavi','🇮🇱'],
-  ['Kylian Mbappé','🇫🇷'],['Erling Haaland','🇳🇴'],['Neymar Jr','🇧🇷'],['Mohamed Salah','🇪🇬'],['Kevin De Bruyne','🇧🇪'],['Luka Modrić','🇭🇷'],
-  ['Robert Lewandowski','🇵🇱'],['Vinícius Jr','🇧🇷'],
-  ['Lionel Messi','🇦🇷'],['Cristiano Ronaldo','🇵🇹'],['Pelé','🇧🇷'],['Diego Maradona','🇦🇷']];
+/* ---------- collections: when one is complete, the next one unlocks (players → Europe → Israel → stadiums) ----------
+   Everything is drawn as generic cartoons (no photos, no club logos). */
+const PLAYERS = [ // [name, flag, shirt number] — first 18 common, next 8 rare, last 4 gold
+  ['Harry Kane','🇬🇧',9],['Jude Bellingham','🇬🇧',5],['Bukayo Saka','🇬🇧',7],['Son Heung-min','🇰🇷',7],['Antoine Griezmann','🇫🇷',7],['Thibaut Courtois','🇧🇪',1],
+  ['Manuel Neuer','🇩🇪',1],['Jamal Musiala','🇩🇪',10],['Pedri','🇪🇸',8],['Lamine Yamal','🇪🇸',19],['Andrés Iniesta','🇪🇸',8],['Zinedine Zidane','🇫🇷',10],
+  ['Ronaldinho','🇧🇷',10],['Virgil van Dijk','🇳🇱',4],['Sadio Mané','🇸🇳',10],['Achraf Hakimi','🇲🇦',2],['Manor Solomon','🇮🇱',11],['Eran Zahavi','🇮🇱',7],
+  ['Kylian Mbappé','🇫🇷',10],['Erling Haaland','🇳🇴',9],['Neymar Jr','🇧🇷',10],['Mohamed Salah','🇪🇬',11],['Kevin De Bruyne','🇧🇪',17],['Luka Modrić','🇭🇷',10],
+  ['Robert Lewandowski','🇵🇱',9],['Vinícius Jr','🇧🇷',7],
+  ['Lionel Messi','🇦🇷',10],['Cristiano Ronaldo','🇵🇹',7],['Pelé','🇧🇷',10],['Diego Maradona','🇦🇷',10]];
+const TEAMS_EU = [ // [name, short, colour 1, colour 2, flag, rarity]
+  ['Celtic','CEL','#1b8f3a','#ffffff','🇬🇧',0],['Ajax','AJA','#ffffff','#d2122e','🇳🇱',0],['Porto','FCP','#0a3d91','#ffffff','🇵🇹',0],['Benfica','BEN','#e30613','#ffffff','🇵🇹',0],
+  ['Tottenham','TOT','#ffffff','#132257','🇬🇧',0],['Napoli','NAP','#12a0d7','#ffffff','🇮🇹',0],['Atlético Madrid','ATM','#cb3524','#ffffff','🇪🇸',0],['Dortmund','BVB','#fde100','#111111','🇩🇪',0],
+  ['Arsenal','ARS','#ef0107','#ffffff','🇬🇧',0],['Chelsea','CHE','#034694','#ffffff','🇬🇧',0],['Juventus','JUV','#111111','#ffffff','🇮🇹',0],['AC Milan','MIL','#fb090b','#111111','🇮🇹',0],
+  ['Inter','INT','#0068a8','#111111','🇮🇹',1],['Man United','MUN','#da291c','#111111','🇬🇧',1],['PSG','PSG','#004170','#da291c','🇫🇷',1],['Liverpool','LIV','#c8102e','#ffffff','🇬🇧',1],['Man City','MCI','#6cabdd','#ffffff','🇬🇧',1],
+  ['Bayern Munich','FCB','#dc052d','#ffffff','🇩🇪',2],['Barcelona','BAR','#004d98','#a50044','🇪🇸',2],['Real Madrid','RMA','#ffffff','#febe10','🇪🇸',2]];
+const TEAMS_IL = [
+  ['בני יהודה','BNY','#f58220','#111111','🇮🇱',0],['הפועל פתח תקווה','HPT','#1e5aa8','#ffffff','🇮🇱',0],['הפועל חיפה','HHA','#e30613','#ffffff','🇮🇱',0],
+  ['בני סכנין','BSK','#e30613','#ffffff','🇮🇱',0],['הפועל ירושלים','HJM','#e30613','#ffffff','🇮🇱',0],['מכבי נתניה','MNE','#fcd116','#111111','🇮🇱',0],
+  ['ביתר ירושלים','BEI','#fcd116','#111111','🇮🇱',1],['הפועל באר שבע','HBS','#e30613','#ffffff','🇮🇱',1],['מכבי חיפה','MHA','#1f9d4a','#ffffff','🇮🇱',1],
+  ['הפועל תל אביב','HTA','#e30613','#ffffff','🇮🇱',2],['מכבי תל אביב','MTA','#fcd116','#1e5aa8','🇮🇱',2],['נבחרת ישראל','ISR','#1e73be','#ffffff','🇮🇱',2]];
+const STADIUMS = [ // [name, flag, stand colour, rarity]
+  ['בלומפילד','🇮🇱','#fcd116',0],['טדי','🇮🇱','#e30613',0],['סמי עופר','🇮🇱','#1f9d4a',0],['טרנר','🇮🇱','#e30613',0],
+  ['Emirates','🇬🇧','#ef0107',0],['Etihad','🇬🇧','#6cabdd',0],['Stamford Bridge','🇬🇧','#034694',0],['Signal Iduna Park','🇩🇪','#fde100',0],
+  ['Parc des Princes','🇫🇷','#004170',0],['Johan Cruijff Arena','🇳🇱','#d2122e',0],
+  ['Allianz Arena','🇩🇪','#dc052d',1],['Old Trafford','🇬🇧','#da291c',1],['Anfield','🇬🇧','#c8102e',1],['San Siro','🇮🇹','#c8102e',1],['Estadio Azteca','🇲🇽','#1f9d4a',1],['Estádio da Luz','🇵🇹','#e30613',1],
+  ['Wembley','🇬🇧','#e8e8e8',2],['Maracanã','🇧🇷','#1fa84f',2],['Santiago Bernabéu','🇪🇸','#ffffff',2],['Camp Nou','🇪🇸','#a50044',2]];
 const SKIN = ['#f6d3b3','#e8b98d','#c68b59','#8d5a3b','#f2c9a0'];
 const HAIR = ['#2b1b10','#6b3f1d','#d9a441','#c0392b','#111','#5b4bd6','#1aa5a5'];
-const CARDS = REAL.map(([name, flag], i) => {
-  const rar = i >= 26 ? 2 : i >= 18 ? 1 : 0;
-  return { id: 'p' + i, name, flag, rar, hue: (i * 47) % 360, skin: SKIN[i % 5], hair: HAIR[(i * 3) % 7], num: (i * 7) % 98 + 1 };
-});
+const COLLECTIONS = [
+  { id: 'players', icon: '⭐', title: 'שחקנים', what: 'שחקנים', cards: PLAYERS.map(([name, flag, num], i) => ({ id: 'p' + i, kind: 'player', name, flag, num,
+      rar: i >= 26 ? 2 : i >= 18 ? 1 : 0, hue: (i * 47) % 360, skin: SKIN[i % 5], hair: HAIR[(i * 3) % 7] })) },
+  { id: 'europe', icon: '🌍', title: 'קבוצות אירופה', what: 'קבוצות מאירופה', cards: TEAMS_EU.map(([name, ab, c1, c2, flag, rar], i) => ({ id: 'e' + i, kind: 'team', name, ab, c1, c2, flag, rar })) },
+  { id: 'israel', icon: '🇮🇱', title: 'קבוצות ישראל', what: 'קבוצות מישראל', cards: TEAMS_IL.map(([name, ab, c1, c2, flag, rar], i) => ({ id: 'i' + i, kind: 'team', name, ab, c1, c2, flag, rar })) },
+  { id: 'stadiums', icon: '🏟️', title: 'אצטדיונים', what: 'אצטדיונים', cards: STADIUMS.map(([name, flag, c1, rar], i) => ({ id: 's' + i, kind: 'stadium', name, flag, c1, rar })) }
+];
+COLLECTIONS.forEach((col, ci) => col.cards.forEach(c => { c.col = ci; }));
+const CARDS = COLLECTIONS.flatMap(col => col.cards);
 const RAR_COL = ['#aab4bb', '#4aa3ff', '#ffd60a'], RAR_NAME = ['רגיל', 'נדיר', 'זהב'];
-function cardSVG(c, owned) {
-  if (!owned) return `<svg viewBox="0 0 120 170"><rect x="2" y="2" width="116" height="166" rx="14" fill="#2a4a3a" stroke="#4d6b5c" stroke-width="3"/><text x="60" y="100" text-anchor="middle" font-size="60" fill="#4d6b5c" font-family="Fredoka,sans-serif" font-weight="700">?</text></svg>`;
-  const col = RAR_COL[c.rar], j = `hsl(${c.hue},70%,50%)`, j2 = `hsl(${c.hue},70%,35%)`, long = c.name.length > 14;
+
+function cardFrame(c, art){
+  const col = RAR_COL[c.rar], long = c.name.length > 14;
   return `<svg viewBox="0 0 120 170"><defs><linearGradient id="g${c.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.rar === 2 ? '#fff3b0' : c.rar === 1 ? '#cfe8ff' : '#eef2f4'}"/><stop offset="1" stop-color="${col}"/></linearGradient></defs>
   <rect x="2" y="2" width="116" height="166" rx="14" fill="url(#g${c.id})" stroke="${col}" stroke-width="4"/>
   <text x="60" y="18" text-anchor="middle" font-size="10" font-weight="900" fill="#0d2a1c" font-family="Heebo,sans-serif">${'★'.repeat(c.rar + 1)}</text>
-  <path d="M26 140 L33 96 Q60 84 87 96 L94 140Z" fill="${j}" stroke="${j2}" stroke-width="2"/>
+  ${art}
+  <rect x="6" y="142" width="108" height="24" rx="8" fill="#0d2a1c"/>
+  <text x="60" y="154" text-anchor="middle" font-size="${long ? 8.5 : 10}" font-weight="700" fill="#fff" font-family="Fredoka,Heebo,sans-serif"${long ? ' textLength="100" lengthAdjust="spacingAndGlyphs"' : ''}>${c.name}</text>
+  <text x="60" y="164" text-anchor="middle" font-size="8" fill="${col}" font-family="Fredoka,Heebo,sans-serif">${c.flag} ${RAR_NAME[c.rar]}</text></svg>`;
+}
+function cardSVG(c, owned) {
+  if (!owned) return `<svg viewBox="0 0 120 170"><rect x="2" y="2" width="116" height="166" rx="14" fill="#2a4a3a" stroke="#4d6b5c" stroke-width="3"/><text x="60" y="100" text-anchor="middle" font-size="60" fill="#4d6b5c" font-family="Fredoka,sans-serif" font-weight="700">?</text></svg>`;
+  if (c.kind === 'team') { // generic shield in the club colours with its short name (no real logos)
+    const sh = 'M30 34 H90 V86 Q90 120 60 134 Q30 120 30 86 Z';
+    return cardFrame(c, `<defs><clipPath id="c${c.id}"><path d="${sh}"/></clipPath></defs>
+      <g clip-path="url(#c${c.id})"><rect x="30" y="34" width="60" height="100" fill="${c.c1}"/><rect x="40" y="34" width="10" height="100" fill="${c.c2}"/><rect x="70" y="34" width="10" height="100" fill="${c.c2}"/></g>
+      <path d="${sh}" fill="none" stroke="#0d2a1c" stroke-width="3" stroke-linejoin="round"/>
+      <rect x="36" y="72" width="48" height="26" rx="9" fill="rgba(255,255,255,.92)" stroke="#0d2a1c" stroke-width="1.5"/>
+      <text x="60" y="91" text-anchor="middle" font-size="18" font-weight="700" fill="#0d2a1c" font-family="Fredoka,sans-serif">${c.ab}</text>
+      <text x="60" y="52" text-anchor="middle" font-size="14">⚽</text>`);
+  }
+  if (c.kind === 'stadium') { // simple bowl stadium with floodlights in the stand colour
+    return cardFrame(c, `<rect x="12" y="26" width="96" height="110" rx="8" fill="#bfe6ff"/>
+      <rect x="12" y="104" width="96" height="32" fill="#7ac47f"/>
+      <rect x="19" y="52" width="3" height="52" fill="#555"/><rect x="98" y="52" width="3" height="52" fill="#555"/>
+      <rect x="15" y="44" width="11" height="9" rx="2" fill="#fff6a8" stroke="#555"/><rect x="94" y="44" width="11" height="9" rx="2" fill="#fff6a8" stroke="#555"/>
+      <ellipse cx="60" cy="92" rx="44" ry="28" fill="${c.c1}" stroke="#0d2a1c" stroke-width="2.5"/>
+      <ellipse cx="60" cy="94" rx="35" ry="20" fill="rgba(0,0,0,.28)"/>
+      <ellipse cx="60" cy="95" rx="29" ry="15" fill="#2fa84f" stroke="#fff" stroke-width="1.5"/>
+      <line x1="60" y1="80" x2="60" y2="110" stroke="#fff" stroke-width="1.5"/><circle cx="60" cy="95" r="5" fill="none" stroke="#fff" stroke-width="1.5"/>
+      <path d="M16 96 Q60 138 104 96" fill="none" stroke="#0d2a1c" stroke-width="2.5" opacity=".55"/>`);
+  }
+  const j = `hsl(${c.hue},70%,50%)`, j2 = `hsl(${c.hue},70%,35%)`;
+  return cardFrame(c, `<path d="M26 140 L33 96 Q60 84 87 96 L94 140Z" fill="${j}" stroke="${j2}" stroke-width="2"/>
   <path d="M50 90 Q60 100 70 90" fill="none" stroke="${j2}" stroke-width="3"/>
   <text x="60" y="124" text-anchor="middle" font-size="22" font-weight="700" fill="#fff" font-family="Fredoka,sans-serif">${c.num}</text>
   <rect x="52" y="76" width="16" height="16" rx="6" fill="${c.skin}"/>
   <circle cx="60" cy="56" r="24" fill="${c.skin}"/>
   <path d="M35 56 Q36 26 60 28 Q84 26 85 56 Q74 40 60 42 Q46 40 35 56Z" fill="${c.hair}"/>
   <circle cx="51" cy="58" r="3" fill="#222"/><circle cx="69" cy="58" r="3" fill="#222"/>
-  <path d="M50 68 Q60 77 70 68" fill="none" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
-  <rect x="6" y="142" width="108" height="24" rx="8" fill="#0d2a1c"/>
-  <text x="60" y="154" text-anchor="middle" font-size="${long ? 8.5 : 10}" font-weight="700" fill="#fff" font-family="Fredoka,sans-serif"${long ? ' textLength="100" lengthAdjust="spacingAndGlyphs"' : ''}>${c.name}</text>
-  <text x="60" y="164" text-anchor="middle" font-size="8" fill="${col}" font-family="Fredoka,sans-serif">${c.flag} ${RAR_NAME[c.rar]}</text></svg>`;
+  <path d="M50 68 Q60 77 70 68" fill="none" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>`);
 }
+
+/* ---------- picture-word illustrations (used instead of an emoji that is misleading; a photo set by the parents wins) ---------- */
+const svgURI = (inner) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">${inner}</svg>`);
+const ART = {
+  desk: svgURI(`<rect x="22" y="76" width="156" height="14" rx="4" fill="#b5651d"/><rect x="22" y="76" width="156" height="5" rx="2" fill="#d58a3c"/>
+    <rect x="30" y="90" width="10" height="88" fill="#8d4f12"/><rect x="104" y="90" width="66" height="80" fill="#a35a17"/><rect x="160" y="170" width="10" height="8" fill="#8d4f12"/>
+    <rect x="110" y="96" width="54" height="30" rx="3" fill="#c77a2e" stroke="#7a420d" stroke-width="2"/><circle cx="137" cy="111" r="3.5" fill="#ffd60a"/>
+    <rect x="110" y="132" width="54" height="30" rx="3" fill="#c77a2e" stroke="#7a420d" stroke-width="2"/><circle cx="137" cy="147" r="3.5" fill="#ffd60a"/>
+    <rect x="40" y="64" width="42" height="12" fill="#e53935"/><rect x="44" y="53" width="36" height="11" fill="#1e88e5"/><rect x="48" y="43" width="30" height="10" fill="#43a047"/>
+    <rect x="120" y="70" width="30" height="6" fill="#555"/><path d="M135 70 L128 40 L158 30" fill="none" stroke="#555" stroke-width="4" stroke-linecap="round"/><path d="M150 24 L172 34 L160 46 Z" fill="#ffd60a" stroke="#555" stroke-width="2"/>`),
+  big: svgURI(`<circle cx="100" cy="112" r="62" fill="#2f7de1" stroke="#17458a" stroke-width="5"/><ellipse cx="78" cy="86" rx="18" ry="10" fill="#fff" opacity=".35" transform="rotate(-30 78 86)"/>
+    <circle cx="178" cy="178" r="10" fill="#9aa5ad" stroke="#5e6a72" stroke-width="3"/>
+    <g stroke="#e53935" stroke-width="5" stroke-linecap="round" fill="none"><path d="M100 36 V22"/><path d="M24 112 H14"/><path d="M176 112 H186"/></g>
+    <g fill="#e53935"><path d="M100 8 l-10 14 h20z"/><path d="M4 112 l14 -10 v20z"/><path d="M196 112 l-14 -10 v20z"/></g>`),
+  boot: svgURI(`<path d="M72 18 H124 V104 C124 118 140 122 154 128 C172 136 180 148 180 164 V176 H66 C60 176 58 172 58 166 L62 28 C62 22 66 18 72 18Z" fill="#43a047" stroke="#1b5e20" stroke-width="4" stroke-linejoin="round"/>
+    <rect x="58" y="18" width="70" height="20" rx="6" fill="#2e7d32" stroke="#1b5e20" stroke-width="4"/>
+    <path d="M58 160 H180 V180 H60 C58 180 58 178 58 176Z" fill="#37474f" stroke="#1b2327" stroke-width="3"/>
+    <path d="M78 52 V120" stroke="#a5d6a7" stroke-width="6" stroke-linecap="round" opacity=".7"/><circle cx="150" cy="146" r="4" fill="#1b5e20"/>`),
+  queen: svgURI(`<path d="M52 90 Q40 150 54 186 H146 Q160 150 148 90Z" fill="#6b3f1d"/>
+    <path d="M50 192 L68 128 Q100 116 132 128 L150 192Z" fill="#8e44ad" stroke="#5b2a73" stroke-width="3"/>
+    <path d="M78 126 Q100 148 122 126" fill="none" stroke="#ffd60a" stroke-width="6"/><circle cx="100" cy="146" r="6" fill="#e53935" stroke="#ffd60a" stroke-width="2"/>
+    <rect x="90" y="108" width="20" height="20" rx="8" fill="#f6d3b3"/><circle cx="100" cy="84" r="30" fill="#f6d3b3"/>
+    <path d="M70 80 Q72 52 100 52 Q128 52 130 80 Q116 64 100 66 Q84 64 70 80Z" fill="#6b3f1d"/>
+    <circle cx="89" cy="86" r="3.5" fill="#222"/><circle cx="111" cy="86" r="3.5" fill="#222"/><path d="M90 98 Q100 108 110 98" fill="none" stroke="#c0392b" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="80" cy="96" r="5" fill="#ff9aa2" opacity=".6"/><circle cx="120" cy="96" r="5" fill="#ff9aa2" opacity=".6"/>
+    <circle cx="70" cy="104" r="5" fill="#ffd60a"/><circle cx="130" cy="104" r="5" fill="#ffd60a"/>
+    <path d="M68 58 L72 26 L88 44 L100 18 L112 44 L128 26 L132 58 Z" fill="#ffd60a" stroke="#c9a000" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="72" cy="26" r="4" fill="#e53935"/><circle cx="100" cy="18" r="4" fill="#1e88e5"/><circle cx="128" cy="26" r="4" fill="#e53935"/>`),
+  net: svgURI(`<defs><clipPath id="nc"><circle cx="130" cy="64" r="44"/></clipPath></defs>
+    <path d="M32 188 L104 100" stroke="#8d5a3b" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="130" cy="64" r="44" fill="#e6f4ff" fill-opacity=".7"/>
+    <g clip-path="url(#nc)" stroke="#7a8b99" stroke-width="1.5"><path d="M80 20V120M100 20V120M120 20V120M140 20V120M160 20V120M180 20V120"/><path d="M80 34H180M80 54H180M80 74H180M80 94H180M80 114H180"/></g>
+    <circle cx="130" cy="64" r="44" fill="none" stroke="#4a5a68" stroke-width="6"/>
+    <g transform="translate(36 50)"><ellipse cx="-12" cy="-6" rx="16" ry="12" fill="#ff9800" stroke="#a85d00" stroke-width="2"/><ellipse cx="12" cy="-6" rx="16" ry="12" fill="#ff9800" stroke="#a85d00" stroke-width="2"/>
+    <ellipse cx="-9" cy="10" rx="10" ry="8" fill="#ffc107" stroke="#a85d00" stroke-width="2"/><ellipse cx="9" cy="10" rx="10" ry="8" fill="#ffc107" stroke="#a85d00" stroke-width="2"/><rect x="-2" y="-12" width="4" height="26" rx="2" fill="#4e342e"/></g>`),
+  'open the door': svgURI(`<rect x="30" y="14" width="140" height="176" fill="#fff3b0" stroke="#6b3f1d" stroke-width="8"/>
+    <g fill="#ffe36e"><path d="M100 150 L60 190 H140Z" opacity=".9"/></g><rect x="38" y="170" width="124" height="20" fill="#e8c46a"/>
+    <circle cx="120" cy="80" r="22" fill="#ffd60a" opacity=".6"/>
+    <path d="M38 22 L98 40 V164 L38 182Z" fill="#a0612a" stroke="#6b3f1d" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M50 52 L88 62 V100 L50 94Z M50 108 L88 112 V148 L50 154Z" fill="none" stroke="#6b3f1d" stroke-width="3" opacity=".7"/>
+    <circle cx="90" cy="104" r="5" fill="#ffd60a" stroke="#8a6b00" stroke-width="2"/>`)
+};
+const artOf = (w) => (w && (w.img || ART[String(w.word || '').toLowerCase()])) || '';
 
 /* ---------- storage ---------- */
 function emptyRecords(){ return { goals: 0, bestScore: 0, bestStreak: 0, matches: 0, times: {}, scores: {}, by: {} }; }
-function defaults(){ return { ver: 0, letters: ['A', 'B', 'N'], words: DEFAULT_WORDS.map(w => ({...w})), records: emptyRecords(), cards: [], players: [], me: '', letterInfo: {}, wstats: {} }; }
+function defaults(){ return { ver: 0, letters: ['A', 'B', 'N'], words: DEFAULT_WORDS.map(w => ({...w})), records: emptyRecords(), cards: [], players: [], me: '', letterInfo: {}, wstats: {}, rounds: 10 }; }
 let state = defaults();
 function load(){
   try { const raw = localStorage.getItem(KEY); if (raw) { const v = sanitize(JSON.parse(raw)); if (v) state = v; } } catch (_) {}
@@ -572,7 +691,8 @@ function sanitize(d){
   if (isObj(d.wstats)) for (const k of Object.keys(d.wstats).slice(0, 400)) {
     const v = d.wstats[k]; if (/^[a-z][a-z '\-]{0,19}$/.test(k) && isObj(v)) wstats[k] = { n: Math.min(9999, num(v.n)), m: Math.min(9999, num(v.m)) };
   }
-  return { ver: num(d.ver), letters, words, cards, players, me, letterInfo, wstats,
+  const rounds = [10, 20, 30, 40].includes(d.rounds) ? d.rounds : 10;
+  return { ver: num(d.ver), letters, words, cards, players, me, letterInfo, wstats, rounds,
     records: { goals: num(r.goals), bestScore: num(r.bestScore), bestStreak: num(r.bestStreak), matches: num(r.matches), times, scores, by } };
 }
 
@@ -693,7 +813,7 @@ function goHome(){
 }
 document.querySelectorAll('[data-home]').forEach(b => b.addEventListener('click', goHome));
 const GAMES = [
-  { id: 'penalty', icon: '🥅', title: 'פנדלים', desc: 'שומעים שם של אות או מילה ובועטים לשער עם האות הנכונה. 10 בעיטות, כמה שיותר מהר.', rec: 'time' },
+  { id: 'penalty', icon: '🥅', title: 'פנדלים', desc: 'שומעים שם של אות או מילה ובועטים לשער עם האות הנכונה. כמה שיותר מהר.', rec: 'time' },
   { id: 'fast', icon: '⏱️', title: 'מתקפה מהירה', desc: '45 שניות. כמה שערים תספיק להבקיע? אפשר לשבור שיא פעם אחר פעם!', rec: 'score' },
   { id: 'memory', icon: '👕', title: 'חולצות תאומות', desc: 'הופכים חולצות ומוצאים זוגות: אות גדולה ואות קטנה.', rec: 'time' },
   { id: 'maze', icon: '🧩', title: 'מבוך אותיות', desc: 'מובילים את הכדור לשער, רק דרך האות הנכונה.', rec: 'time' },
@@ -713,7 +833,9 @@ function recLine(g){
 function refreshHome(){
   const r = state.records, me = curPlayer();
   $('stGoals').textContent = r.goals; $('stBest').textContent = r.bestScore; $('stStreak').textContent = r.bestStreak;
-  $('cardCount').textContent = state.cards.length;
+  { const ai = activeCol(), col = COLLECTIONS[ai < 0 ? COLLECTIONS.length - 1 : ai];
+    $('toCards').textContent = ai < 0 ? '🏆 כל האוספים שלמים!' : `${col.icon} האוסף שלי: ${col.title} (${colHave(ai)}/${col.cards.length})`; }
+  renderCount();
   const mb = $('meBadge'); mb.textContent = '';
   if (me) { const sv = document.createElement('span'); sv.innerHTML = shirtSVG(me.color, me.num); const nm = document.createElement('span'); nm.textContent = me.name; const sm = document.createElement('small'); sm.textContent = '▾ החלפת שחקן'; mb.append(sv, nm, sm); }
   const gl = $('gList'); gl.textContent = '';
@@ -723,6 +845,10 @@ function refreshHome(){
     b.onclick = () => startGame(g.id); gl.appendChild(b);
   });
 }
+function renderCount(){
+  const h = $('cntBtns'); h.textContent = '';
+  [10, 20, 30, 40].forEach(n => { const b = document.createElement('button'); b.textContent = n; if (state.rounds === n) b.className = 'on'; b.onclick = () => { state.rounds = n; save(); renderCount(); }; h.appendChild(b); });
+}
 function startGame(mode){
   ensureAudio(); lastMode = mode;
   if (state.letters.length < 2) { toast('יש לבחור לפחות 2 אותיות באזור ההורים'); return; }
@@ -730,11 +856,15 @@ function startGame(mode){
 }
 
 /* ---------- result + card rewards ---------- */
-function awardCard(r){ // r in 0..1 = how well she played; better play, better odds of rare/gold
-  const unowned = CARDS.filter(c => !state.cards.includes(c.id)); if (!unowned.length) return null;
+const colHave = (i) => COLLECTIONS[i].cards.filter(c => state.cards.includes(c.id)).length;
+const activeCol = () => COLLECTIONS.findIndex((col, i) => colHave(i) < col.cards.length); // -1 when everything is collected
+function awardCard(r){ // r in 0..1 = how well she played; better play, better odds of rare/gold. Cards come from the first unfinished collection.
+  const ai = activeCol(); if (ai < 0) return null;
+  const unowned = COLLECTIONS[ai].cards.filter(c => !state.cards.includes(c.id));
   const roll = Math.random(), rar = roll < r * .12 ? 2 : roll < r * .42 ? 1 : 0;
   let pool = unowned.filter(c => c.rar === rar); if (!pool.length) pool = unowned;
-  const c = pool[Math.random() * pool.length | 0]; state.cards.push(c.id); return c;
+  const c = pool[Math.random() * pool.length | 0]; state.cards.push(c.id);
+  return activeCol() === ai ? c : Object.assign({}, c, { completes: ai }); // completes = this card finished collection ai
 }
 function showResult({ ball, title, text, ms, score, scoreLbl, timeNote, card, celebrate }){
   $('resBall').textContent = ball; $('resTitle').textContent = title; $('resText').textContent = text;
@@ -748,18 +878,40 @@ function showResult({ ball, title, text, ms, score, scoreLbl, timeNote, card, ce
   if (card) { const d = document.createElement('div'); d.className = 'pop'; d.innerHTML = cardSVG(card, true); const t = document.createElement('div'); t.className = 'rec'; t.textContent = 'קלף חדש: ' + card.name + '!'; rc.append(d, t); }
   if (celebrate || timeNote === 'record' || card) { confetti(); sGoal(); }
   save(); show('result');
+  if (card && card.completes != null) setTimeout(() => megaCelebrate(card.completes), 1600);
 }
 $('again').onclick = () => startGame(lastMode);
-$('resCards').onclick = () => { renderCards(); show('cards'); };
-$('toCards').onclick = () => { renderCards(); show('cards'); };
+$('resCards').onclick = () => openCards();
+$('toCards').onclick = () => openCards();
 $('toBook').onclick = () => { renderBook(); show('book'); };
+let viewCol = 0;
+function openCards(idx){ const ai = activeCol(); viewCol = idx != null ? idx : ai < 0 ? COLLECTIONS.length - 1 : ai; renderCards(); show('cards'); }
 function renderCards(){
-  $('cardsSub').textContent = `אספתם ${state.cards.length} מתוך ${CARDS.length} שחקנים. משחקים כדי לזכות בעוד!`;
-  $('cardGrid').innerHTML = CARDS.map(c => `<div>${cardSVG(c, state.cards.includes(c.id))}</div>`).join('');
+  const ai = activeCol(), last = ai < 0 ? COLLECTIONS.length - 1 : ai; // collections after `last` are still locked
+  if (viewCol > last) viewCol = last;
+  const col = COLLECTIONS[viewCol], have = colHave(viewCol), done = have === col.cards.length;
+  $('cardTabs').innerHTML = COLLECTIONS.map((c, i) => `<button data-c="${i}"${i === viewCol ? ' class="on"' : ''}${i > last ? ' disabled' : ''}>${i > last ? '🔒' : colHave(i) === c.cards.length ? '✅' : c.icon} ${c.title}</button>`).join('');
+  $('cardsSub').textContent = `אספתם ${have} מתוך ${col.cards.length} ${col.what}.` + (done ? '' : ' משחקים כדי לזכות בעוד!');
+  $('cardGrid').innerHTML = (done ? '<div class="cdone" style="grid-column:1/-1">🏆 האוסף שלם! 🏆</div>' : '') + col.cards.map(c => `<div>${cardSVG(c, state.cards.includes(c.id))}</div>`).join('');
+}
+$('cardTabs').onclick = (e) => { const b = e.target.closest('button[data-c]'); if (b && !b.disabled) { viewCol = +b.dataset.c; renderCards(); } };
+// Big celebration when a whole collection is finished.
+let megaIv = 0;
+function megaCelebrate(ci){
+  const col = COLLECTIONS[ci], nx = COLLECTIONS[ci + 1], m = $('mega');
+  const gold = col.cards.filter(c => c.rar === 2).slice(0, 3);
+  m.innerHTML = `<div class="trophy">🏆</div><h1>${nx ? 'איזה כיף! סיימתם את האוסף!' : 'אלופי העולם! 🌟'}</h1>
+    <p>אספתם את כל ${col.cards.length} ${col.what}!</p><div class="fan">${gold.map(c => `<div>${cardSVG(c, true)}</div>`).join('')}</div>
+    <p>${nx ? `🔓 נפתח אוסף חדש: ${nx.icon} ${nx.title}` : 'סיימתם את כל האוספים! 🎉'}</p>
+    <button class="btn green" id="megaOk">${nx ? 'לאוסף החדש ➜' : 'לקלפים שלי ➜'}</button>`;
+  m.classList.add('on'); sGoal(); setTimeout(() => tone([523, 659, 784, 1046, 784, 1046, 1318], .16), 500);
+  speak('Congratulations! You collected them all!');
+  clearInterval(megaIv); confetti(); megaIv = setInterval(() => { confetti(); if (Math.random() < .5) tone([784 + Math.random() * 500 | 0], .08); }, 600);
+  $('megaOk').onclick = () => { clearInterval(megaIv); m.classList.remove('on'); m.textContent = ''; openCards(nx ? ci + 1 : ci); };
 }
 
 /* ---------- quiz games: letters, words, penalty ---------- */
-const ROUNDS = 10;
+const STD_ROUNDS = 10; // records (best times / best score) only count in a standard 10-round game
 // Repeats a list up to n items (reshuffling each round) without putting the same item twice in a row.
 function padTo(a, n){
   let out = a.slice(); while (out.length < n && a.length) out = out.concat(shuffle(a));
@@ -784,9 +936,9 @@ function startQuiz(mode){
   if (mode === 'words' && !wpool.length) { toast('אין מילים שמתאימות לאותיות הפעילות'); return; }
   const vpool = state.words.filter(w => w.he);
   if (mode === 'vocab' && new Set(vpool.map(w => w.he)).size < 4) { toast('צריך לפחות 4 מילים עם תרגום בעברית'); return; }
-  const padN = mode === 'fast' ? 60 : ROUNDS; // Fast Attack needs a long list
+  const padN = mode === 'fast' ? 60 : state.rounds; // Fast Attack needs a long list
   G = { mode, letters, lpool: padTo(shuffle(letters), padN), wpool: padTo(smartOrder(wpool), padN), vpool: padTo(smartOrder(vpool), padN),
-        i: 0, goals: 0, streak: 0, bestStreak: 0, lock: false, rounds: ROUNDS };
+        i: 0, goals: 0, streak: 0, bestStreak: 0, lock: false, rounds: state.rounds };
   $('play').classList.toggle('pen', isPen(mode));
   if (mode === 'fast') { G.rounds = 1e9; show('play'); startClock($('clock'), 45000, finishFast); }
   else { show('play'); startClock($('clock')); }
@@ -810,7 +962,7 @@ function nextQ(){
   const sp = document.createElement('button'); sp.className = 'speak'; sp.textContent = '🔊';
   const hint = document.createElement('div'); hint.className = 'hint';
   if (kind === 'vocab') {
-    if (item.img) { const im = document.createElement('img'); im.alt = ''; im.src = item.img; p.appendChild(im); }
+    if (artOf(item)) { const im = document.createElement('img'); im.alt = ''; im.src = artOf(item); p.appendChild(im); }
     else { const e = document.createElement('div'); e.className = 'pic'; e.textContent = item.emoji || '❓'; p.appendChild(e); }
     const wd = document.createElement('div'); wd.className = 'big'; wd.style.fontSize = item.word.length > 9 ? '34px' : '48px'; wd.textContent = item.word;
     hint.textContent = 'מה פירוש המילה?'; sp.onclick = () => speak(item.word); p.append(wd, hint, sp);
@@ -820,7 +972,7 @@ function nextQ(){
     hint.textContent = 'איזו אות שמעתם?'; sp.onclick = () => speakLetter(answer); p.append(big, hint, sp);
     setTimeout(() => speakLetter(answer), 250);
   } else {
-    if (item.img) { const im = document.createElement('img'); im.alt = ''; im.src = item.img; p.appendChild(im); }
+    if (artOf(item)) { const im = document.createElement('img'); im.alt = ''; im.src = artOf(item); p.appendChild(im); }
     else { const e = document.createElement('div'); e.className = 'pic'; e.textContent = item.emoji || '❓'; p.appendChild(e); }
     hint.textContent = 'באיזו אות מתחילה המילה?'; sp.onclick = () => speak(item.word); p.append(hint, sp);
     setTimeout(() => speak(item.word), 250);
@@ -877,14 +1029,14 @@ function finishFast(){
     text: `הבקעתם ${G.goals} שערים ב-45 שניות. רצף הצלחות: ${G.bestStreak}.`, score: G.goals, timeNote: note, card, celebrate: G.goals >= 7 });
 }
 function finishQuiz(){
-  const ms = stopClock(), r = state.records, prevBest = r.bestScore, perfect = G.goals === G.rounds;
-  r.goals += G.goals; r.matches++; r.bestScore = Math.max(r.bestScore, G.goals); r.bestStreak = Math.max(r.bestStreak, G.bestStreak);
-  const timeNote = perfect ? recordTime(G.mode, ms) : ''; // time records only count for a perfect match
-  const card = awardCard(G.goals / G.rounds), newBest = G.goals > prevBest && G.goals > 0;
+  const ms = stopClock(), r = state.records, std = G.rounds === STD_ROUNDS, prevBest = r.bestScore, perfect = G.goals === G.rounds;
+  r.goals += G.goals; r.matches++; if (std) r.bestScore = Math.max(r.bestScore, G.goals); r.bestStreak = Math.max(r.bestStreak, G.bestStreak);
+  const timeNote = perfect && std ? recordTime(G.mode, ms) : ''; // time records only count for a perfect match
+  const card = awardCard(G.goals / G.rounds), newBest = std && G.goals > prevBest && G.goals > 0;
   showResult({
     ball: G.goals >= 8 ? '🏆' : G.goals >= 5 ? '🥈' : '⚽',
     title: newBest ? 'שיא חדש! 🎉' : G.goals >= 8 ? 'כוכבים!' : G.goals >= 5 ? 'כל הכבוד!' : 'ממשיכים להתאמן!',
-    text: `הבקעתם ${G.goals} שערים מתוך ${G.rounds}. רצף הצלחות: ${G.bestStreak}.` + (perfect ? '' : ' (שיא זמן נספר רק כשמבקיעים בכל הבעיטות)'),
+    text: `הבקעתם ${G.goals} שערים מתוך ${G.rounds}. רצף הצלחות: ${G.bestStreak}.` + (!std ? ' (שיאים נספרים רק במשחק של 10 סיבובים)' : perfect ? '' : ' (שיא זמן נספר רק כשמבקיעים בכל הבעיטות)'),
     ms, timeNote, card, celebrate: G.goals >= 5
   });
 }
@@ -895,7 +1047,7 @@ function startCatch(){
   const cv = $('cv'), dpr = window.devicePixelRatio || 1;
   cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr;
   const W = cv.clientWidth, H = cv.clientHeight;
-  C = { letters: state.letters.slice(), score: 0, lives: 3, goal: 10, items: [], kx: W / 2, ky: H - 70, W, H, dpr, run: true, spawn: 0, last: performance.now(), target: '' };
+  C = { letters: state.letters.slice(), score: 0, lives: 3, goal: state.rounds, items: [], kx: W / 2, ky: H - 70, W, H, dpr, run: true, spawn: 0, last: performance.now(), target: '' };
   const hud = () => { $('cLives').textContent = '❤️'.repeat(C.lives) + '🖤'.repeat(3 - C.lives); $('cScore').textContent = C.score + '/' + C.goal; $('cTarget').textContent = C.target; };
   C.hud = hud;
   C.newTarget = () => { const o = C.letters.filter(l => l !== C.target); C.target = o[Math.random() * o.length | 0]; hud(); speakLetter(C.target); };
@@ -911,7 +1063,7 @@ function endCatch(win){
   C.run = false; const ms = stopClock();
   if (win) {
     const r = state.records; r.matches++;
-    const timeNote = recordTime('catch', ms), card = awardCard(C.lives / 3);
+    const timeNote = C.goal === STD_ROUNDS ? recordTime('catch', ms) : '', card = awardCard(C.lives / 3);
     showResult({ ball: '🏆', title: 'תפסתם הכל!', text: `נשארו לכם ${C.lives} לבבות. כל הכבוד!`, ms, timeNote, card, celebrate: true });
   } else {
     sMiss(); showResult({ ball: '😅', title: 'השוער התעייף', text: `תפסתם ${C.score} מתוך ${C.goal}. נסו שוב!`, ms, timeNote: '', card: null, celebrate: false });
@@ -925,7 +1077,7 @@ function catchLoop(now){
   if (C.spawn <= 0) {
     C.spawn = Math.max(.4, .85 - C.score * .05);
     const l = Math.random() < .45 ? C.target : C.letters[Math.random() * C.letters.length | 0];
-    C.items.push({ x: 28 + Math.random() * (C.W - 56), y: -30, v: 130 + C.score * 14 + Math.random() * 40, l });
+    C.items.push({ x: 28 + Math.random() * (C.W - 56), y: -30, v: 130 + Math.min(C.score, 12) * 14 + Math.random() * 40, l });
   }
   for (const it of C.items) {
     it.y += it.v * dt;
@@ -969,7 +1121,7 @@ function startHunt(){
   shuffle(tiles).forEach(t => {
     const b = document.createElement('button'); b.className = 'ht';
     if (t.word) {
-      if (t.word.img) { const im = document.createElement('img'); im.alt = ''; im.src = t.word.img; b.appendChild(im); }
+      if (artOf(t.word)) { const im = document.createElement('img'); im.alt = ''; im.src = artOf(t.word); b.appendChild(im); }
       else { const e = document.createElement('span'); e.className = 'we'; e.textContent = t.word.emoji || '❓'; b.appendChild(e); }
       const w = document.createElement('span'); w.className = 'ww'; w.textContent = t.word.word; b.appendChild(w);
     } else b.textContent = t.t;
@@ -1040,7 +1192,7 @@ function startFlashSet(cat){
   const base = cat === 'letters' ? state.words.filter(w => state.letters.includes(w.word[0].toUpperCase())) : cat === 'all' ? state.words : state.words.filter(w => w.cat === cat);
   const pool = smartOrder(base);
   if (!pool.length) { toast('אין מילים בסט הזה'); return;}
-  FL = { words: pool.slice(0, 10), i: 0, ok: 0, missed: [], shown: false };
+  FL = { words: pool.slice(0, state.rounds), i: 0, ok: 0, missed: [], shown: false };
   show('flash'); flashNext();
 }
 function flashNext(){
@@ -1057,7 +1209,7 @@ $('fcCard').onclick = () => {
   const w = FL.words[FL.i]; speak(w.word);
   if (FL.shown) return; FL.shown = true;
   const c = $('fcCard'); c.textContent = '';
-  if (w.img) { const im = document.createElement('img'); im.alt = ''; im.src = w.img; c.appendChild(im); } else c.appendChild(mk('div', 'fe', w.emoji || '❓'));
+  if (artOf(w)) { const im = document.createElement('img'); im.alt = ''; im.src = artOf(w); c.appendChild(im); } else c.appendChild(mk('div', 'fe', w.emoji || '❓'));
   c.append(mk('div', 'fw', w.word)); if (w.he) c.appendChild(mk('div', 'fhe', w.he)); c.appendChild(mk('div', 'fh', 'ידעתם? סמנו ✓ או ✗'));
   $('fcMarks').hidden = false;
 };
@@ -1145,7 +1297,7 @@ function renderParents(){
   state.words.forEach(w => {
     const row = document.createElement('div'); row.className = 'w';
     const th = document.createElement('div'); th.className = 'th';
-    if (w.img) { const im = document.createElement('img'); im.alt = ''; im.src = w.img; th.appendChild(im); } else th.textContent = w.emoji || '❓';
+    if (artOf(w)) { const im = document.createElement('img'); im.alt = ''; im.src = artOf(w); th.appendChild(im); } else th.textContent = w.emoji || '❓';
     const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = w.word + (w.he ? '  –  ' + w.he : '');
     const pic = document.createElement('label'); pic.className = 'btn small ghost'; pic.style.margin = '0'; pic.title = 'החלפת תמונה'; pic.append('📷');
     const fi = document.createElement('input'); fi.type = 'file'; fi.accept = 'image/*'; fi.hidden = true; pic.appendChild(fi);
@@ -1238,7 +1390,7 @@ function renderBook(L){
   const grid = mk('div', 'wcards');
   state.words.filter(w => w.word[0].toUpperCase() === bookLetter).forEach(w => {
     const wc = mk('button', 'wc');
-    if (w.img) { const im = document.createElement('img'); im.alt = ''; im.src = w.img; wc.appendChild(im); } else wc.appendChild(mk('span', 'we', w.emoji || '❓'));
+    if (artOf(w)) { const im = document.createElement('img'); im.alt = ''; im.src = artOf(w); wc.appendChild(im); } else wc.appendChild(mk('span', 'we', w.emoji || '❓'));
     const t = mk('span', ''); t.append(mk('span', 'hl', w.word[0]), document.createTextNode(w.word.slice(1))); wc.appendChild(t);
     if (w.he) wc.appendChild(mk('span', 'whe', w.he));
     wc.onclick = () => speak(w.word); grid.appendChild(wc);
