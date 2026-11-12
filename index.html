@@ -203,6 +203,8 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 .cnt div{display:flex;gap:8px;justify-content:center;margin-top:8px}
 .cnt button{flex:1;border:0;border-radius:12px;padding:9px 0;font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;background:#fff;color:var(--ink);box-shadow:0 3px 0 #b8c4bd;opacity:.7}
 .cnt button.on{background:var(--gold);opacity:1}
+.say{pointer-events:none;display:block;margin:6px auto 8px;border:0;border-radius:18px;padding:10px 18px;background:var(--gold);color:var(--ink);box-shadow:0 4px 0 #b39500;text-align:center;font-weight:900}
+.say b{display:block;font-family:'Fredoka',sans-serif;font-size:26px;direction:ltr}.say span{font-size:15px}
 .ctabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;flex-shrink:0}
 .ctabs button{flex:0 0 auto;border:0;border-radius:14px;padding:8px 12px;font-weight:900;font-size:14px;background:rgba(255,255,255,.85);color:var(--ink);white-space:nowrap}
 .ctabs button.on{background:var(--gold);box-shadow:0 3px 0 #b39500}
@@ -362,6 +364,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   <div id="resWho"></div>
   <div class="stat" style="margin:0 0 6px"><b id="resTime">0.0s</b><span id="resLbl">הזמן שלכם</span></div>
   <div class="rec" id="resRec"></div>
+  <button class="say" id="resSay" hidden></button>
   <div id="resCard"></div>
   <button class="btn green" id="again">שחקו שוב</button>
   <button class="btn ghost" id="resCards">⭐ לקלפים שלי</button>
@@ -624,7 +627,7 @@ const artOf = (w) => (w && (w.img || ART[String(w.word || '').toLowerCase()])) |
 
 /* ---------- storage ---------- */
 function emptyRecords(){ return { goals: 0, bestScore: 0, bestStreak: 0, matches: 0, times: {}, scores: {}, by: {} }; }
-function defaults(){ return { ver: 0, letters: ['A', 'B', 'N'], words: DEFAULT_WORDS.map(w => ({...w})), records: emptyRecords(), cards: [], players: [], me: '', letterInfo: {}, wstats: {}, rounds: 10 }; }
+function defaults(){ return { ver: 0, letters: ['A', 'B', 'N'], words: DEFAULT_WORDS.map(w => ({...w})), records: emptyRecords(), cards: [], players: [], me: '', letterInfo: {}, wstats: {}, rounds: 10, pbs: {} }; }
 let state = defaults();
 function load(){
   try { const raw = localStorage.getItem(KEY); if (raw) { const v = sanitize(JSON.parse(raw)); if (v) state = v; } } catch (_) {}
@@ -692,7 +695,12 @@ function sanitize(d){
     const v = d.wstats[k]; if (/^[a-z][a-z '\-]{0,19}$/.test(k) && isObj(v)) wstats[k] = { n: Math.min(9999, num(v.n)), m: Math.min(9999, num(v.m)) };
   }
   const rounds = [10, 20, 30, 40].includes(d.rounds) ? d.rounds : 10;
-  return { ver: num(d.ver), letters, words, cards, players, me, letterInfo, wstats, rounds,
+  const pbs = {}; // personal bests: pbs[playerId]['penalty:20'] = ms (or goals for fast)
+  if (isObj(d.pbs)) for (const pid of Object.keys(d.pbs)) {
+    if ((pid !== '_' && !players.some(p => p.id === pid)) || !isObj(d.pbs[pid])) continue; // '_' = no player profile yet
+    for (const k of Object.keys(d.pbs[pid]).slice(0, 60)) { const m = k.split(':')[0]; if (/^[a-z]+(:\d{1,2})?$/.test(k) && MODES.includes(m) && num(d.pbs[pid][k]) > 0) (pbs[pid] = pbs[pid] || {})[k] = num(d.pbs[pid][k]); }
+  }
+  return { ver: num(d.ver), letters, words, cards, players, me, letterInfo, wstats, rounds, pbs,
     records: { goals: num(r.goals), bestScore: num(r.bestScore), bestStreak: num(r.bestStreak), matches: num(r.matches), times, scores, by } };
 }
 
@@ -728,21 +736,29 @@ document.addEventListener('visibilitychange', () => { // don't count time while 
   if (document.hidden && clk.on) { clk.acc = elapsed(); clk.on = false; clk.paused = true; }
   else if (!document.hidden && clk.paused) { clk.t0 = performance.now(); clk.on = true; clk.paused = false; }
 });
-// Family records: the best result of every player is kept together with who set it.
-let lastBeat = '';
-function recordTime(mode, ms){
-  const t = state.records.times, by = state.records.by, prev = t[mode]; ms = Math.round(ms); lastBeat = '';
-  if (!prev) { t[mode] = ms; by[mode] = who(); return 'first'; }
-  if (ms < prev) { if (by[mode] && by[mode] !== who()) lastBeat = by[mode]; t[mode] = ms; by[mode] = who(); return 'record'; }
+// Personal records: every player has their own best per game, and per round count in the games that have one.
+const COUNTED = ['penalty', 'vocab', 'words', 'catch'];
+const pbKey = (mode, n) => COUNTED.includes(mode) && n ? mode + ':' + n : mode;
+const pbStore = () => { const id = (curPlayer() || {}).id || '_'; return state.pbs[id] || (state.pbs[id] = {}); };
+let lastPrev = 0; // the personal best that was just beaten
+function recordTime(mode, ms, n){
+  const t = pbStore(), k = pbKey(mode, n), prev = t[k]; ms = Math.round(ms); lastPrev = 0;
+  if (!prev) { t[k] = ms; return 'first'; }
+  if (ms < prev) { lastPrev = prev; t[k] = ms; return 'record'; }
   return '';
 }
 function recordScore(mode, n){
-  const t = state.records.scores, by = state.records.by, prev = t[mode]; lastBeat = '';
+  const t = pbStore(), prev = t[mode]; lastPrev = 0;
   if (!n) return '';
-  if (!prev) { t[mode] = n; by[mode] = who(); return 'first'; }
-  if (n > prev) { if (by[mode] && by[mode] !== who()) lastBeat = by[mode]; t[mode] = n; by[mode] = who(); return 'record'; }
+  if (!prev) { t[mode] = n; return 'first'; }
+  if (n > prev) { lastPrev = prev; t[mode] = n; return 'record'; }
   return '';
 }
+// English sentences the kid hears and sees when he beats his own record.
+const CHEERS = [['You broke your record!', 'שברת את השיא שלך!'], ['New record!', 'שיא חדש!'], ['Great job!', 'עבודה מצוינת!'], ['You are so fast!', 'איזו מהירות!'],
+  ['I am proud of you!', 'אני גאה בך!'], ['You are a champion!', 'אלוף/ה!'], ['Well done!', 'כל הכבוד!'], ['Keep it up!', 'ממשיכים ככה!'], ['You are amazing!', 'אתם מדהימים!']];
+const FIRST_CHEER = ['This is your first record!', 'זה השיא הראשון שלך!'];
+let cheerIdx = Math.random() * CHEERS.length | 0;
 
 /* ---------- audio: AudioContext + speech (iOS-safe) ---------- */
 let actx = null, voice = null;
@@ -825,10 +841,10 @@ const GAMES = [
 ];
 function recLine(g){
   if (g.rec === 'none') return '⭐ בלי לחץ – לומדים בקצב שלך';
-  const r = state.records, v = g.rec === 'score' ? (r.scores[g.id] ? r.scores[g.id] + ' שערים' : '') : (r.times[g.id] ? fmt(r.times[g.id]) : '');
-  if (!v) return '🏆 עוד אין שיא, תהיה הראשון!';
-  const by = r.by[g.id] || '', me = who();
-  return `🏆 שיא משפחתי: ${v}` + (by ? ' – ' + by : '') + (by && by !== me ? ' · בואו נשבור אותו!' : '');
+  const t = pbStore(), counted = COUNTED.includes(g.id), k = pbKey(g.id, state.rounds), v = t[k];
+  const lbl = '🏆 השיא שלך' + (counted ? ` (${state.rounds} סיבובים)` : '');
+  if (!v) return lbl.replace('השיא שלך', 'עוד אין שיא') + ' – בואו נקבע אחד!';
+  return `${lbl}: ${g.rec === 'score' ? v + ' שערים' : fmt(v)}`;
 }
 function refreshHome(){
   const r = state.records, me = curPlayer();
@@ -847,7 +863,7 @@ function refreshHome(){
 }
 function renderCount(){
   const h = $('cntBtns'); h.textContent = '';
-  [10, 20, 30, 40].forEach(n => { const b = document.createElement('button'); b.textContent = n; if (state.rounds === n) b.className = 'on'; b.onclick = () => { state.rounds = n; save(); renderCount(); }; h.appendChild(b); });
+  [10, 20, 30, 40].forEach(n => { const b = document.createElement('button'); b.textContent = n; if (state.rounds === n) b.className = 'on'; b.onclick = () => { state.rounds = n; save(); refreshHome(); }; h.appendChild(b); });
 }
 function startGame(mode){
   ensureAudio(); lastMode = mode;
@@ -872,8 +888,13 @@ function showResult({ ball, title, text, ms, score, scoreLbl, timeNote, card, ce
   else { $('resTime').textContent = ms == null ? '—' : fmt(ms); $('resLbl').textContent = 'הזמן שלכם'; }
   const me = curPlayer(), w = $('resWho'); w.textContent = '';
   if (me) { const sv = document.createElement('span'); sv.innerHTML = shirtSVG(me.color, me.num); const n = document.createElement('b'); n.textContent = me.name; w.append(sv, n); }
-  $('resRec').textContent = timeNote === 'record' ? '🏆 שיא משפחתי חדש!' + (lastBeat ? ' ניצחתם את ' + lastBeat + '!' : '') : timeNote === 'first' ? '🏆 שיא משפחתי ראשון נקבע!' : '';
-  lastBeat = '';
+  $('resRec').textContent = timeNote === 'record' ? '🏆 שברתם את השיא האישי שלכם!' + (lastPrev ? ` (השיא הקודם: ${typeof score === 'number' ? lastPrev + ' שערים' : fmt(lastPrev)})` : '') : timeNote === 'first' ? '🏆 נקבע שיא אישי ראשון!' : '';
+  lastPrev = 0;
+  const sy = $('resSay'); sy.hidden = !timeNote;
+  if (timeNote) {
+    const ch = timeNote === 'first' ? FIRST_CHEER : CHEERS[cheerIdx++ % CHEERS.length];
+    sy.textContent = ''; sy.append(mk('b', '', ch[0]), mk('span', '', ch[1])); // text only, no speech
+  }
   const rc = $('resCard'); rc.textContent = '';
   if (card) { const d = document.createElement('div'); d.className = 'pop'; d.innerHTML = cardSVG(card, true); const t = document.createElement('div'); t.className = 'rec'; t.textContent = 'קלף חדש: ' + card.name + '!'; rc.append(d, t); }
   if (celebrate || timeNote === 'record' || card) { confetti(); sGoal(); }
@@ -1031,12 +1052,12 @@ function finishFast(){
 function finishQuiz(){
   const ms = stopClock(), r = state.records, std = G.rounds === STD_ROUNDS, prevBest = r.bestScore, perfect = G.goals === G.rounds;
   r.goals += G.goals; r.matches++; if (std) r.bestScore = Math.max(r.bestScore, G.goals); r.bestStreak = Math.max(r.bestStreak, G.bestStreak);
-  const timeNote = perfect && std ? recordTime(G.mode, ms) : ''; // time records only count for a perfect match
+  const timeNote = perfect ? recordTime(G.mode, ms, G.rounds) : ''; // time records only count for a perfect match
   const card = awardCard(G.goals / G.rounds), newBest = std && G.goals > prevBest && G.goals > 0;
   showResult({
     ball: G.goals >= 8 ? '🏆' : G.goals >= 5 ? '🥈' : '⚽',
     title: newBest ? 'שיא חדש! 🎉' : G.goals >= 8 ? 'כוכבים!' : G.goals >= 5 ? 'כל הכבוד!' : 'ממשיכים להתאמן!',
-    text: `הבקעתם ${G.goals} שערים מתוך ${G.rounds}. רצף הצלחות: ${G.bestStreak}.` + (!std ? ' (שיאים נספרים רק במשחק של 10 סיבובים)' : perfect ? '' : ' (שיא זמן נספר רק כשמבקיעים בכל הבעיטות)'),
+    text: `הבקעתם ${G.goals} שערים מתוך ${G.rounds}. רצף הצלחות: ${G.bestStreak}.` + (perfect ? '' : ' (שיא זמן נספר רק כשמבקיעים בכל הבעיטות)'),
     ms, timeNote, card, celebrate: G.goals >= 5
   });
 }
@@ -1063,7 +1084,7 @@ function endCatch(win){
   C.run = false; const ms = stopClock();
   if (win) {
     const r = state.records; r.matches++;
-    const timeNote = C.goal === STD_ROUNDS ? recordTime('catch', ms) : '', card = awardCard(C.lives / 3);
+    const timeNote = recordTime('catch', ms, C.goal), card = awardCard(C.lives / 3);
     showResult({ ball: '🏆', title: 'תפסתם הכל!', text: `נשארו לכם ${C.lives} לבבות. כל הכבוד!`, ms, timeNote, card, celebrate: true });
   } else {
     sMiss(); showResult({ ball: '😅', title: 'השוער התעייף', text: `תפסתם ${C.score} מתוך ${C.goal}. נסו שוב!`, ms, timeNote: '', card: null, celebrate: false });
