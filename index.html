@@ -427,6 +427,11 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   </div>
 
   <div class="panel">
+    <h2>🐢 ניחושים מהירים</h2>
+    <p id="guessTxt" style="margin:0 0 6px;font-weight:900"></p>
+    <p style="margin:0;font-size:13px;opacity:.85">כשנוגעים בתשובה לפני שהספיקו לקרוא (פחות מ-1.5 שניות) והיא שגויה, המשחק עוצר, מסביר את הטעות וחוזר על אותה שאלה. תשובה נכונה בניסיון השני שווה חצי שער.</p>
+  </div>
+  <div class="panel">
     <h2>📊 כיסוי מילים</h2>
     <p id="covTxt" style="margin:0 0 6px;font-weight:900"></p>
     <p id="covNew" style="margin:0 0 6px;font-size:14px"></p>
@@ -456,6 +461,13 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
     <button class="btn small" id="gateOk">אישור</button>
     <button class="btn small ghost" style="color:var(--ink);border-color:#aaa" id="gateNo">ביטול</button>
   </div>
+</div></div>
+<div class="modal" id="think"><div class="box">
+  <div style="font-size:56px;line-height:1.1">🤔</div>
+  <h2 style="margin:6px 0">זה בסדר לטעות!</h2>
+  <p id="thinkWhy" style="font-size:18px;font-weight:700;margin:6px 0"></p>
+  <p style="margin:6px 0 12px">הסתכלו, הקשיבו, ונסו שוב לאט – בלי לנחש. 💪</p>
+  <button class="btn green" id="thinkOk" disabled>הבנתי, עוד פעם</button>
 </div></div>
 <div class="mega" id="mega"></div>
 <div class="toast" id="toast"></div>
@@ -627,7 +639,7 @@ const artOf = (w) => (w && (w.img || ART[String(w.word || '').toLowerCase()])) |
 
 /* ---------- storage ---------- */
 function emptyRecords(){ return { goals: 0, bestScore: 0, bestStreak: 0, matches: 0, times: {}, scores: {}, by: {} }; }
-function defaults(){ return { ver: 0, letters: ['A', 'B', 'N'], words: DEFAULT_WORDS.map(w => ({...w})), records: emptyRecords(), cards: [], players: [], me: '', letterInfo: {}, wstats: {}, rounds: 10, pbs: {} }; }
+function defaults(){ return { ver: 0, letters: ['A', 'B', 'N'], words: DEFAULT_WORDS.map(w => ({...w})), records: emptyRecords(), cards: [], players: [], me: '', letterInfo: {}, wstats: {}, rounds: 10, pbs: {}, guesses: {} }; }
 let state = defaults();
 function load(){
   try { const raw = localStorage.getItem(KEY); if (raw) { const v = sanitize(JSON.parse(raw)); if (v) state = v; } } catch (_) {}
@@ -700,7 +712,12 @@ function sanitize(d){
     if ((pid !== '_' && !players.some(p => p.id === pid)) || !isObj(d.pbs[pid])) continue; // '_' = no player profile yet
     for (const k of Object.keys(d.pbs[pid]).slice(0, 60)) { const m = k.split(':')[0]; if (/^[a-z]+(:\d{1,2})?$/.test(k) && MODES.includes(m) && num(d.pbs[pid][k]) > 0) (pbs[pid] = pbs[pid] || {})[k] = num(d.pbs[pid][k]); }
   }
-  return { ver: num(d.ver), letters, words, cards, players, me, letterInfo, wstats, rounds, pbs,
+  const guesses = {}; // timestamps of quick guesses per player (kept for the parents area)
+  if (isObj(d.guesses)) for (const pid of Object.keys(d.guesses)) {
+    if ((pid !== '_' && !players.some(p => p.id === pid)) || !Array.isArray(d.guesses[pid])) continue;
+    guesses[pid] = d.guesses[pid].filter(t => Number.isFinite(t) && t > 0).slice(-300);
+  }
+  return { ver: num(d.ver), letters, words, cards, players, me, letterInfo, wstats, rounds, pbs, guesses,
     records: { goals: num(r.goals), bestScore: num(r.bestScore), bestStreak: num(r.bestStreak), matches: num(r.matches), times, scores, by } };
 }
 
@@ -759,6 +776,17 @@ const CHEERS = [['You broke your record!', 'שברת את השיא שלך!'], ['
   ['I am proud of you!', 'אני גאה בך!'], ['You are a champion!', 'אלוף/ה!'], ['Well done!', 'כל הכבוד!'], ['Keep it up!', 'ממשיכים ככה!'], ['You are amazing!', 'אתם מדהימים!']];
 const FIRST_CHEER = ['This is your first record!', 'זה השיא הראשון שלך!'];
 let cheerIdx = Math.random() * CHEERS.length | 0;
+
+// Freeze the stopwatch while the 'think again' card is open so the pause doesn't count against his time.
+function clockHold(){ if (clk.on) { clk.acc = elapsed(); clk.on = false; clk.held = true; } }
+function clockRelease(){ if (clk.held) { clk.t0 = performance.now(); clk.on = true; clk.held = false; } }
+const GUESS_MS = 1500, WEEK = 7 * 864e5;
+function logGuess(){ const id = (curPlayer() || {}).id || '_', a = state.guesses[id] || (state.guesses[id] = []); a.push(Date.now()); if (a.length > 300) a.splice(0, a.length - 300); }
+function renderGuesses(){
+  const now = Date.now(), n = (id) => (state.guesses[id] || []).filter(t => now - t < WEEK).length;
+  const lines = state.players.map(p => `${p.name}: ${n(p.id)}`); if (n('_')) lines.push('ללא שחקן: ' + n('_'));
+  $('guessTxt').textContent = 'ב-7 הימים האחרונים – ' + (lines.length ? lines.join(' · ') : '0');
+}
 
 /* ---------- audio: AudioContext + speech (iOS-safe) ---------- */
 let actx = null, voice = null;
@@ -823,7 +851,7 @@ const sGoal = () => tone([523, 659, 784, 1046]), sMiss = () => tone([220, 165], 
 let G = null, C = null, M = null, H = null, Z = null, FL = null, lastMode = 'penalty';
 const esc = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function goHome(){
-  save(); stopClock(); if (C) C.run = false; G = null; M = null; H = null; Z = null; FL = null;
+  save(); closeThink(); stopClock(); if (C) C.run = false; G = null; M = null; H = null; Z = null; FL = null;
   try { speechSynthesis.cancel(); } catch (_) {}
   refreshHome(); show('home');
 }
@@ -959,13 +987,13 @@ function startQuiz(mode){
   if (mode === 'vocab' && new Set(vpool.map(w => w.he)).size < 4) { toast('צריך לפחות 4 מילים עם תרגום בעברית'); return; }
   const padN = mode === 'fast' ? 60 : state.rounds; // Fast Attack needs a long list
   G = { mode, letters, lpool: padTo(shuffle(letters), padN), wpool: padTo(smartOrder(wpool), padN), vpool: padTo(smartOrder(vpool), padN),
-        i: 0, goals: 0, streak: 0, bestStreak: 0, lock: false, rounds: state.rounds };
+        i: 0, goals: 0, miss: 0, streak: 0, bestStreak: 0, lock: false, rounds: state.rounds };
   $('play').classList.toggle('pen', isPen(mode));
   if (mode === 'fast') { G.rounds = 1e9; show('play'); startClock($('clock'), 45000, finishFast); }
   else { show('play'); startClock($('clock')); }
   nextQ();
 }
-function board(){ $('board').textContent = G.mode === 'fast' ? `⚽ ${G.goals}` : `⚽ ${G.goals} : ${G.i - G.goals} · ${Math.min(G.i + 1, G.rounds)}/${G.rounds}`; }
+function board(){ $('board').textContent = G.mode === 'fast' ? `⚽ ${G.goals}` : `⚽ ${G.goals} : ${G.miss} · ${Math.min(G.i + 1, G.rounds)}/${G.rounds}`; }
 function nextQ(){
   if (!G || G.over) return;
   if (G.i >= G.rounds) return finishQuiz();
@@ -976,7 +1004,7 @@ function nextQ(){
   if (kind === 'vocab') { item = G.vpool[G.i % G.vpool.length]; answer = item.he; G.cur = item.word; }
   else if (kind === 'word') { item = G.wpool[G.i % G.wpool.length]; answer = item.word[0].toUpperCase(); }
   else { item = G.lpool[G.i % G.lpool.length]; answer = item; }
-  G.answer = answer; G.curW = kind === 'letter' ? '' : item.word;
+  G.answer = answer; G.curW = kind === 'letter' ? '' : item.word; G.kind = kind; G.qStart = performance.now();
   const wrong = kind === 'vocab' ? shuffle([...new Set(state.words.filter(w => w.he && w.he !== answer).map(w => w.he))]).slice(0, 3)
     : shuffle(G.letters.filter(l => l !== answer)).slice(0, 3); // only the selected letters
   const p = $('prompt'); p.textContent = '';
@@ -1009,14 +1037,38 @@ function nextQ(){
     void k.offsetWidth; k.style.transition = ''; ball.style.transition = '';
   } else resetFly();
 }
-function afterAnswer(ok){
+function afterAnswer(ok, guess, tapped){
   if (G.curW) noteWord(G.curW, ok);
-  const fast = G.mode === 'fast';
-  if (ok) { G.goals++; G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak); sGoal(); if (!fast) { confetti(); if (G.mode === 'vocab') speak(G.cur); else speakLetter(G.answer); } }
+  const fast = G.mode === 'fast', retry = !!G.retry, thought = performance.now() - G.qStart >= 3000;
+  if (guess) { // too quick to have read it: stop, explain, then ask the same question again
+    G.streak = 0; G.prevWrong = true; G.retry = true; sMiss(); logGuess();
+    $('msg').textContent = 'רגע, לא ממהרים 🐢';
+    setTimeout(() => thinkCard(tapped), 1100); return;
+  }
+  if (ok) { if (retry) G.goals += .5; else { G.goals++; G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak); } sGoal(); if (!fast) { confetti(); if (G.mode === 'vocab') speak(G.cur); else speakLetter(G.answer); } }
   else { G.streak = 0; sMiss(); if (fast) clk.acc += 2000; } // a miss costs 2 seconds in Fast Attack
-  $('msg').textContent = ok ? 'גוווווול! ⚽🎉' : fast ? '−2 שניות' : 'השוער תפס! נסו בבעיטה הבאה 🧤';
+  if (!ok) G.miss++;
+  $('msg').textContent = ok ? (retry ? 'יפה! חצי שער על הניסיון השני ⚽' : 'גוווווול! ⚽🎉' + (thought && !fast ? ' חשבתם טוב! 🧠' : '')) : fast ? '−2 שניות' : 'השוער תפס! נסו בבעיטה הבאה 🧤';
+  G.prevWrong = !ok; G.retry = false;
   G.i++; setTimeout(nextQ, fast ? (ok ? 650 : 900) : (ok ? 1500 : 1900));
 }
+// "It's OK to be wrong" card: shows the right answer and why, waits a few seconds, then the same question comes back.
+let thinkT = 0;
+function thinkCard(tapped){
+  if (!G || G.over) return;
+  const L = (t) => `<b dir="ltr">${esc(t)}</b>`, k = G.kind;
+  let why;
+  if (k === 'vocab') why = `${L(G.cur)} פירושה ${esc(G.answer)}. בחרתם ${esc(tapped)}.`;
+  else if (k === 'word') why = `${L(G.curW)} מתחילה באות ${L(G.answer)}. בחרתם ${L(tapped)}.`;
+  else why = `האות ששמעתם היא ${L(G.answer)}. בחרתם ${L(tapped)}.`;
+  $('thinkWhy').innerHTML = why; clockHold();
+  const ok = $('thinkOk'); let n = 3; ok.disabled = true; ok.textContent = `הבנתי, עוד פעם (${n})`; $('think').classList.add('on');
+  if (k === 'vocab') speak(G.cur); else if (k === 'word') speak(G.curW); else speakLetter(G.answer);
+  clearInterval(thinkT); thinkT = setInterval(() => { n--; if (n > 0) ok.textContent = `הבנתי, עוד פעם (${n})`; else { clearInterval(thinkT); ok.disabled = false; ok.textContent = 'הבנתי, עוד פעם'; } }, 1000);
+}
+function closeThink(){ clearInterval(thinkT); $('think').classList.remove('on'); clockRelease(); }
+$('thinkOk').onclick = () => { closeThink(); if (G && !G.over) nextQ(); };
+
 function placeFly(){ // ball sits under the answers, glove in the middle of them (absolute inside #play)
   const pl = $('play'), pr = pl.getBoundingClientRect(), o = $('opts').getBoundingClientRect();
   const put = (el, x, y) => { el.style.left = (x - pr.left) + 'px'; el.style.top = (y - pr.top + pl.scrollTop) + 'px'; };
@@ -1030,6 +1082,7 @@ function resetFly(){
 function shoot(btn, l){
   if (G.lock) return; G.lock = true;
   const pen = isPen(G.mode), ok = l === G.answer;
+  const quick = !ok && G.mode !== 'fast' && !G.retry && (performance.now() - G.qStart < GUESS_MS || (G.prevWrong && performance.now() - G.qStart < 2 * GUESS_MS));
   if (!pen) placeFly();
   const ballEl = $(pen ? 'pball' : 'fball'), gkEl = $(pen ? 'pgk' : 'fgk'), all = [...(pen ? $('tgts') : $('opts')).children];
   const c = (r) => [r.left + r.width / 2, r.top + r.height / 2], base = pen ? '0px' : '-50%';
@@ -1040,7 +1093,7 @@ function shoot(btn, l){
   const [gx, gy] = c(gkEl.getBoundingClientRect()), [ex, ey] = c(kt.getBoundingClientRect());
   gkEl.style.transform = `translate(calc(-50% + ${ex - gx}px), calc(-50% + ${ey - gy}px)) rotate(${ex < gx ? -25 : 25}deg)`;
   if (ok) btn.classList.add('good'); else { btn.classList.add('bad', 'shake'); all.forEach(b => { if (b.dataset.l === G.answer) b.classList.add('good'); }); }
-  afterAnswer(ok);
+  afterAnswer(ok, quick, l);
 }
 function finishFast(){
   if (!G || G.over) return; G.over = true; G.lock = true; stopClock();
@@ -1050,10 +1103,10 @@ function finishFast(){
     text: `הבקעתם ${G.goals} שערים ב-45 שניות. רצף הצלחות: ${G.bestStreak}.`, score: G.goals, timeNote: note, card, celebrate: G.goals >= 7 });
 }
 function finishQuiz(){
-  const ms = stopClock(), r = state.records, std = G.rounds === STD_ROUNDS, prevBest = r.bestScore, perfect = G.goals === G.rounds;
-  r.goals += G.goals; r.matches++; if (std) r.bestScore = Math.max(r.bestScore, G.goals); r.bestStreak = Math.max(r.bestStreak, G.bestStreak);
+  const ms = stopClock(), r = state.records, std = G.rounds === STD_ROUNDS, prevBest = r.bestScore, perfect = G.goals === G.rounds, gi = Math.floor(G.goals);
+  r.goals += gi; r.matches++; if (std) r.bestScore = Math.max(r.bestScore, gi); r.bestStreak = Math.max(r.bestStreak, G.bestStreak);
   const timeNote = perfect ? recordTime(G.mode, ms, G.rounds) : ''; // time records only count for a perfect match
-  const card = awardCard(G.goals / G.rounds), newBest = std && G.goals > prevBest && G.goals > 0;
+  const card = awardCard(G.goals / G.rounds), newBest = std && gi > prevBest && gi > 0;
   showResult({
     ball: G.goals >= 8 ? '🏆' : G.goals >= 5 ? '🥈' : '⚽',
     title: newBest ? 'שיא חדש! 🎉' : G.goals >= 8 ? 'כוכבים!' : G.goals >= 5 ? 'כל הכבוד!' : 'ממשיכים להתאמן!',
@@ -1307,7 +1360,7 @@ function renderCoverage(){
 }
 $('resetStats').onclick = () => { if (confirm('לאפס את הסטטיסטיקה של המילים?')) { state.wstats = {}; save(); renderCoverage(); toast('אופס'); } };
 function renderParents(){
-  renderVoices(); renderCoverage();
+  renderVoices(); renderCoverage(); renderGuesses();
   const lp = $('letterPick'); lp.textContent = '';
   ALPHA.forEach(l => {
     const b = document.createElement('button'); b.textContent = l; b.className = state.letters.includes(l) ? 'sel' : '';
