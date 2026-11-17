@@ -116,6 +116,7 @@ h2{margin:10px 0;font-size:22px}
 .grid{display:grid;gap:10px;direction:ltr;margin-top:6px}
 .mc{border:0;border-radius:16px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:44px;aspect-ratio:3/4;background:#1d6f47;color:#fff;box-shadow:0 5px 0 #0c3f27}
 .mc.open{background:#fff;color:var(--ink);box-shadow:0 5px 0 #b8c4bd}
+.mc.wd{font-size:20px;line-height:1.15;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px;word-break:break-word}.mc.wd small{font-family:'Heebo',sans-serif;font-size:13px;color:#1b6b45;font-weight:900}.mc img{max-width:84%;max-height:70%;border-radius:10px}.mc .pe{font-size:44px;line-height:1}
 .mc.done{background:var(--ok);color:var(--ink);box-shadow:0 5px 0 #1aa84c}
 /* ball + glove that fly to the tapped answer in the letter/word games */
 #fball,#fgk{position:absolute;display:none;pointer-events:none;z-index:5;transform:translate(-50%,-50%);transition:transform .45s cubic-bezier(.2,.8,.3,1);line-height:1}
@@ -321,6 +322,28 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   <div class="hgrid" id="hGrid"></div>
 </section>
 
+<!-- PICTURE MEMORY -->
+<section id="wmem" class="screen">
+  <div class="top">
+    <button class="btn ghost" data-home>✖ יציאה</button>
+    <div class="clock" id="wmClock">0.0s</div>
+    <div class="scoreboard" id="wmMoves">🃏 0</div>
+  </div>
+  <p class="sub" style="margin:4px 0">התאימו כל תמונה למילה שלה</p>
+  <div class="grid" id="wmGrid"></div>
+</section>
+
+<!-- PICTURE HUNT -->
+<section id="whunt" class="screen">
+  <div class="top">
+    <button class="btn ghost" data-home>✖ יציאה</button>
+    <div class="clock" id="whClock">0.0s</div>
+    <div class="scoreboard" id="whLeft">0/6</div>
+  </div>
+  <div class="hud" style="justify-content:center;gap:10px"><span>מצאו את:</span><span class="tg" id="whTarget">?</span><button id="whSay" style="border:0;border-radius:50%;width:42px;height:42px;font-size:20px">🔊</button></div>
+  <div class="hgrid" id="whGrid"></div>
+</section>
+
 <!-- MAZE -->
 <section id="maze" class="screen">
   <div class="top">
@@ -478,7 +501,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 const $ = (id) => document.getElementById(id);
 const KEY = 'letterStadium.v1';
 const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-const MODES = ['penalty', 'fast', 'memory', 'maze', 'hunt', 'catch', 'catchw', 'vocab', 'letters', 'words'];
+const MODES = ['penalty', 'fast', 'memory', 'maze', 'hunt', 'catch', 'catchw', 'wmem', 'whunt', 'vocab', 'letters', 'words'];
 const DEFAULT_WORDS = [
   ['apple','🍎'],['ball','⚽'],['cat','🐱'],['dog','🐶'],['egg','🥚'],['fish','🐟'],['goat','🐐'],['hat','🎩'],
   ['ice cream','🍦'],['juice','🧃'],['kite','🪁'],['lion','🦁'],['moon','🌙'],['nose','👃'],['orange','🍊'],
@@ -848,10 +871,10 @@ function tone(freqs, dur = .12, type = 'triangle'){
 const sGoal = () => tone([523, 659, 784, 1046]), sMiss = () => tone([220, 165], .2, 'sawtooth'), sPop = () => tone([880], .08);
 
 /* ---------- navigation / home ---------- */
-let G = null, C = null, M = null, H = null, Z = null, FL = null, lastMode = 'penalty';
+let G = null, C = null, M = null, H = null, Z = null, FL = null, WM = null, WH = null, lastMode = 'penalty';
 const esc = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function goHome(){
-  save(); closeThink(); stopClock(); if (C) C.run = false; G = null; M = null; H = null; Z = null; FL = null;
+  save(); closeThink(); stopClock(); if (C) C.run = false; G = null; M = null; H = null; Z = null; FL = null; WM = null; WH = null;
   try { speechSynthesis.cancel(); } catch (_) {}
   refreshHome(); show('home');
 }
@@ -864,6 +887,8 @@ const GAMES = [
   { id: 'hunt', icon: '🔎', title: 'ציד האות', desc: 'מוצאים את כל האותיות והמילים שמתחילות באות המבוקשת.', rec: 'time' },
   { id: 'catch', icon: '🧤', title: 'תופסים כדורים', desc: 'מזיזים את הכפפה ותופסים רק את האות שנשמעת.', rec: 'time' },
   { id: 'catchw', icon: '📸', title: 'תופסים תמונות', desc: 'שומעים מילה באנגלית ותופסים את התמונה שלה כשהיא נופלת. אין צורך לקרוא!', rec: 'time' },
+  { id: 'wmem', icon: '🃏', title: 'זוגות תמונה ומילה', desc: 'הופכים קלפים ומוצאים זוגות: תמונה והמילה שלה באנגלית. המילה נשמעת כשהופכים!', rec: 'time' },
+  { id: 'whunt', icon: '🔍', title: 'ציד התמונות', desc: 'שומעים מילה ומוצאים את התמונה שלה ברשת של תמונות. 6 מילים, כמה שיותר מהר.', rec: 'time' },
   { id: 'flash', icon: '🗂️', title: 'כרטיסיות מילים', desc: 'שומעים מילה, מקישים כדי לראות את התמונה, ומסמנים ✓ אם ידעתם או ✗ אם לא.', rec: 'none' },
   { id: 'vocab', icon: '🔤', title: 'מה פירוש המילה?', desc: 'רואים ושומעים מילה באנגלית ובוחרים את התרגום הנכון בעברית.', rec: 'time' },
   { id: 'words', icon: '🖼️', title: 'האות הפותחת', desc: 'רואים תמונה ובוחרים באיזו אות מתחילה המילה. כיף לשחק יחד!', rec: 'time' }
@@ -897,7 +922,7 @@ function renderCount(){
 function startGame(mode){
   ensureAudio(); lastMode = mode;
   if (state.letters.length < 2) { toast('יש לבחור לפחות 2 אותיות באזור ההורים'); return; }
-  if (mode === 'catch') startCatch('letter'); else if (mode === 'catchw') startCatch('word'); else if (mode === 'memory') startMemory(); else if (mode === 'hunt') startHunt(); else if (mode === 'maze') startMaze(); else if (mode === 'flash') startFlash(); else startQuiz(mode);
+  if (mode === 'catch') startCatch('letter'); else if (mode === 'catchw') startCatch('word'); else if (mode === 'wmem') startWMem(); else if (mode === 'whunt') startWHunt(); else if (mode === 'memory') startMemory(); else if (mode === 'hunt') startHunt(); else if (mode === 'maze') startMaze(); else if (mode === 'flash') startFlash(); else startQuiz(mode);
 }
 
 /* ---------- result + card rewards ---------- */
@@ -1119,7 +1144,7 @@ function finishQuiz(){
 /* ---------- catch the falling balls ---------- */
 function startCatch(kind){
   const word = kind === 'word';
-  const pool = word ? state.words.filter(w => (w.emoji || artOf(w)) && w.cat !== 'phrase') : []; // phrases like 'I am' can't be told by a picture
+  const pool = word ? picWords() : [];
   if (word && pool.length < 5) { toast('צריך לפחות 5 מילים עם תמונה'); return; }
   show('catch');
   const cv = $('cv'), dpr = window.devicePixelRatio || 1;
@@ -1367,6 +1392,79 @@ function finishMemory(){
   const q = M.moves <= M.pairs + 2 ? 1 : M.moves <= M.pairs * 2 ? .7 : .4;
   const timeNote = recordTime('memory', ms), card = awardCard(q);
   showResult({ ball: '🏆', title: 'מצאתם את כל הזוגות!', text: `סיימתם ב-${M.moves} ניסיונות.`, ms, timeNote, card, celebrate: true });
+}
+
+/* ---------- picture games: match / find the picture of a word (no reading needed) ---------- */
+const picWords = () => state.words.filter(w => (w.emoji || artOf(w)) && w.cat !== 'phrase'); // phrases like 'I am' can't be told by a picture
+const picKey = (w) => artOf(w) || w.emoji;
+function pickPics(list, n, avoid = new Set()){ // n words with different pictures, least-seen first
+  const out = [], seen = new Set(avoid);
+  for (const w of list) { const k = picKey(w); if (seen.has(k)) continue; seen.add(k); out.push(w); if (out.length === n) break; }
+  return out;
+}
+function picNode(w, tag, cls){ const a = artOf(w); if (a) { const im = document.createElement('img'); im.alt = ''; im.src = a; return im; } return mk(tag || 'span', cls || 'pe', w.emoji || '❓'); }
+
+function startWMem(){
+  const words = pickPics(smartOrder(picWords()), 6);
+  if (words.length < 6) { toast('צריך לפחות 6 מילים עם תמונה שונה'); return; }
+  const cards = shuffle(words.flatMap(w => [{ w, pic: true }, { w, pic: false }]));
+  WM = { cards, open: [], matched: 0, moves: 0, lock: false, pairs: words.length };
+  const g = $('wmGrid'); g.textContent = ''; g.style.gridTemplateColumns = 'repeat(3, 1fr)';
+  cards.forEach((c, i) => { const b = document.createElement('button'); b.className = 'mc'; b.textContent = '⚽'; b.onclick = () => wflip(i, b); c.el = b; g.appendChild(b); });
+  $('wmMoves').textContent = '🃏 0'; show('wmem'); startClock($('wmClock'));
+}
+function wflip(i, b){
+  if (!WM || WM.lock) return; const c = WM.cards[i];
+  if (c.done || WM.open.includes(c)) return;
+  b.textContent = ''; b.classList.add('open');
+  if (c.pic) b.appendChild(picNode(c.w));
+  else { b.classList.add('wd'); b.appendChild(mk('span', '', c.w.word)); if (c.w.he) b.appendChild(mk('small', '', c.w.he)); }
+  speak(c.w.word); WM.open.push(c);
+  if (WM.open.length < 2) return;
+  WM.moves++; $('wmMoves').textContent = '🃏 ' + WM.moves;
+  const [a, d] = WM.open;
+  if (a.w === d.w && a.pic !== d.pic) {
+    a.done = d.done = true; a.el.classList.add('done'); d.el.classList.add('done'); WM.open = []; WM.matched++; noteWord(a.w.word, true); sPop();
+    if (WM.matched === WM.pairs) setTimeout(finishWMem, 700);
+  } else {
+    WM.lock = true;
+    setTimeout(() => { [a, d].forEach(x => { x.el.className = 'mc'; x.el.textContent = '⚽'; }); WM.open = []; WM.lock = false; }, 1100);
+  }
+}
+function finishWMem(){
+  const ms = stopClock(), r = state.records; r.matches++;
+  const q = WM.moves <= WM.pairs + 2 ? 1 : WM.moves <= WM.pairs * 2 ? .7 : .4;
+  const timeNote = recordTime('wmem', ms), card = awardCard(q);
+  showResult({ ball: '🏆', title: 'התאמתם את כל הזוגות!', text: `סיימתם ב-${WM.moves} ניסיונות.`, ms, timeNote, card, celebrate: true });
+}
+
+function startWHunt(){
+  const list = smartOrder(picWords()), targets = pickPics(list, 6), rest = pickPics(shuffle(list), 6, new Set(targets.map(picKey)));
+  if (targets.length < 6 || rest.length < 6) { toast('צריך לפחות 12 מילים עם תמונה שונה'); return; }
+  WH = { targets, i: 0, mist: 0 };
+  const g = $('whGrid'); g.textContent = '';
+  shuffle([...targets, ...rest]).forEach(w => {
+    const b = document.createElement('button'); b.className = 'ht'; b.appendChild(picNode(w, 'span', 'we')); b.firstChild.style && (b.firstChild.style.fontSize = '44px');
+    if (b.firstChild.tagName === 'IMG') b.firstChild.style.maxHeight = '64px';
+    b.onclick = () => {
+      if (!WH || b.classList.contains('good')) return;
+      const cur = WH.targets[WH.i];
+      if (w === cur) {
+        noteWord(w.word, true); b.classList.add('good'); sPop(); WH.i++;
+        if (WH.i >= WH.targets.length) { $('whLeft').textContent = '6/6'; setTimeout(() => finishFind('whunt', WH.mist, 'מצאתם את כל התמונות!'), 600); }
+        else setTimeout(whNext, 700);
+      } else { noteWord(cur.word, false); WH.mist++; sMiss(); b.classList.add('bad', 'shake'); setTimeout(() => b.classList.remove('bad', 'shake'), 600); }
+    };
+    g.appendChild(b);
+  });
+  $('whSay').onclick = () => WH && WH.targets[WH.i] && speak(WH.targets[WH.i].word);
+  show('whunt'); startClock($('whClock')); whNext();
+}
+function whNext(){
+  if (!WH || WH.i >= WH.targets.length) return;
+  const w = WH.targets[WH.i].word; $('whLeft').textContent = WH.i + '/6';
+  $('whTarget').innerHTML = `<span style="color:#e53935">${esc(w[0])}</span>${esc(w.slice(1))}`; $('whTarget').style.fontSize = w.length > 8 ? '18px' : '28px';
+  speak(w);
 }
 
 /* ---------- parents ---------- */
