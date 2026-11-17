@@ -295,7 +295,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
     <button class="btn ghost" data-home>✖ יציאה</button>
     <div class="clock" id="cClock">0.0s</div>
   </div>
-  <div class="hud"><span id="cLives">❤️❤️❤️</span><span>תפסו: <span class="tg" id="cTarget">?</span></span><span id="cScore" style="direction:ltr">0/10</span></div>
+  <div class="hud"><span id="cLives">❤️❤️❤️</span><span>תפסו: <span class="tg" id="cTarget">?</span> <button id="cSay" hidden style="border:0;border-radius:50%;width:42px;height:42px;font-size:20px;vertical-align:middle">🔊</button></span><span id="cScore" style="direction:ltr">0/10</span></div>
   <div id="cvWrap"><canvas id="cv"></canvas></div>
 </section>
 
@@ -478,7 +478,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 const $ = (id) => document.getElementById(id);
 const KEY = 'letterStadium.v1';
 const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-const MODES = ['penalty', 'fast', 'memory', 'maze', 'hunt', 'catch', 'vocab', 'letters', 'words'];
+const MODES = ['penalty', 'fast', 'memory', 'maze', 'hunt', 'catch', 'catchw', 'vocab', 'letters', 'words'];
 const DEFAULT_WORDS = [
   ['apple','🍎'],['ball','⚽'],['cat','🐱'],['dog','🐶'],['egg','🥚'],['fish','🐟'],['goat','🐐'],['hat','🎩'],
   ['ice cream','🍦'],['juice','🧃'],['kite','🪁'],['lion','🦁'],['moon','🌙'],['nose','👃'],['orange','🍊'],
@@ -754,7 +754,7 @@ document.addEventListener('visibilitychange', () => { // don't count time while 
   else if (!document.hidden && clk.paused) { clk.t0 = performance.now(); clk.on = true; clk.paused = false; }
 });
 // Personal records: every player has their own best per game, and per round count in the games that have one.
-const COUNTED = ['penalty', 'vocab', 'words', 'catch'];
+const COUNTED = ['penalty', 'vocab', 'words', 'catch', 'catchw'];
 const pbKey = (mode, n) => COUNTED.includes(mode) && n ? mode + ':' + n : mode;
 const pbStore = () => { const id = (curPlayer() || {}).id || '_'; return state.pbs[id] || (state.pbs[id] = {}); };
 let lastPrev = 0; // the personal best that was just beaten
@@ -863,6 +863,7 @@ const GAMES = [
   { id: 'maze', icon: '🧩', title: 'מבוך אותיות', desc: 'מובילים את הכדור לשער, רק דרך האות הנכונה.', rec: 'time' },
   { id: 'hunt', icon: '🔎', title: 'ציד האות', desc: 'מוצאים את כל האותיות והמילים שמתחילות באות המבוקשת.', rec: 'time' },
   { id: 'catch', icon: '🧤', title: 'תופסים כדורים', desc: 'מזיזים את הכפפה ותופסים רק את האות שנשמעת.', rec: 'time' },
+  { id: 'catchw', icon: '📸', title: 'תופסים תמונות', desc: 'שומעים מילה באנגלית ותופסים את התמונה שלה כשהיא נופלת. אין צורך לקרוא!', rec: 'time' },
   { id: 'flash', icon: '🗂️', title: 'כרטיסיות מילים', desc: 'שומעים מילה, מקישים כדי לראות את התמונה, ומסמנים ✓ אם ידעתם או ✗ אם לא.', rec: 'none' },
   { id: 'vocab', icon: '🔤', title: 'מה פירוש המילה?', desc: 'רואים ושומעים מילה באנגלית ובוחרים את התרגום הנכון בעברית.', rec: 'time' },
   { id: 'words', icon: '🖼️', title: 'האות הפותחת', desc: 'רואים תמונה ובוחרים באיזו אות מתחילה המילה. כיף לשחק יחד!', rec: 'time' }
@@ -896,7 +897,7 @@ function renderCount(){
 function startGame(mode){
   ensureAudio(); lastMode = mode;
   if (state.letters.length < 2) { toast('יש לבחור לפחות 2 אותיות באזור ההורים'); return; }
-  if (mode === 'catch') startCatch(); else if (mode === 'memory') startMemory(); else if (mode === 'hunt') startHunt(); else if (mode === 'maze') startMaze(); else if (mode === 'flash') startFlash(); else startQuiz(mode);
+  if (mode === 'catch') startCatch('letter'); else if (mode === 'catchw') startCatch('word'); else if (mode === 'memory') startMemory(); else if (mode === 'hunt') startHunt(); else if (mode === 'maze') startMaze(); else if (mode === 'flash') startFlash(); else startQuiz(mode);
 }
 
 /* ---------- result + card rewards ---------- */
@@ -1116,15 +1117,31 @@ function finishQuiz(){
 }
 
 /* ---------- catch the falling balls ---------- */
-function startCatch(){
+function startCatch(kind){
+  const word = kind === 'word';
+  const pool = word ? state.words.filter(w => (w.emoji || artOf(w)) && w.cat !== 'phrase') : []; // phrases like 'I am' can't be told by a picture
+  if (word && pool.length < 5) { toast('צריך לפחות 5 מילים עם תמונה'); return; }
   show('catch');
   const cv = $('cv'), dpr = window.devicePixelRatio || 1;
   cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr;
   const W = cv.clientWidth, H = cv.clientHeight;
-  C = { letters: state.letters.slice(), score: 0, lives: 3, goal: state.rounds, items: [], kx: W / 2, ky: H - 70, W, H, dpr, run: true, spawn: 0, last: performance.now(), target: '' };
-  const hud = () => { $('cLives').textContent = '❤️'.repeat(C.lives) + '🖤'.repeat(3 - C.lives); $('cScore').textContent = C.score + '/' + C.goal; $('cTarget').textContent = C.target ? C.target + ' ' + C.target.toLowerCase() : '?'; };
+  C = { kind, mode: word ? 'catchw' : 'catch', letters: state.letters.slice(), pool, q: [], imgs: {}, score: 0, lives: 3, goal: state.rounds, items: [], kx: W / 2, ky: H - 70, W, H, dpr, run: true, spawn: 0, last: performance.now(), target: '' };
+  pool.forEach(w => { const u = artOf(w); if (u) { const im = new Image(); im.src = u; C.imgs[wkey(w)] = im; } });
+  const hud = () => {
+    $('cLives').textContent = '❤️'.repeat(C.lives) + '🖤'.repeat(3 - C.lives); $('cScore').textContent = C.score + '/' + C.goal;
+    const t = $('cTarget');
+    if (word) { const w = C.target ? C.target.word : ''; t.innerHTML = w ? `<span style="color:#e53935">${esc(w[0])}</span>${esc(w.slice(1))}` : '?'; t.style.fontSize = w.length > 8 ? '18px' : '28px'; }
+    else { t.textContent = C.target ? C.target + ' ' + C.target.toLowerCase() : '?'; t.style.fontSize = ''; }
+  };
   C.hud = hud;
-  C.newTarget = () => { const o = C.letters.filter(l => l !== C.target); C.target = o[Math.random() * o.length | 0]; hud(); speakLetter(C.target); };
+  C.newTarget = () => {
+    if (word) { // next word: least-seen first, never the same one twice in a row
+      if (!C.q.length) C.q = smartOrder(C.pool);
+      let w = C.q.shift(); if (C.target && wkey(w) === wkey(C.target) && C.q.length) { const n = C.q.shift(); C.q.push(w); w = n; }
+      C.target = w; hud(); speak(w.word);
+    } else { const o = C.letters.filter(l => l !== C.target); C.target = o[Math.random() * o.length | 0]; hud(); speakLetter(C.target); }
+  };
+  const say = $('cSay'); say.hidden = !word; say.onclick = () => C && C.run && C.target && (word ? speak(C.target.word) : speakLetter(C.target));
   C.newTarget(); startClock($('cClock'));
   const move = (e) => { // hand follows the finger anywhere; on touch it floats above the finger so it stays visible
     const r = cv.getBoundingClientRect(), lift = e.pointerType === 'touch' ? 55 : 0;
@@ -1137,7 +1154,7 @@ function endCatch(win){
   C.run = false; const ms = stopClock();
   if (win) {
     const r = state.records; r.matches++;
-    const timeNote = recordTime('catch', ms, C.goal), card = awardCard(C.lives / 3);
+    const timeNote = recordTime(C.mode, ms, C.goal), card = awardCard(C.lives / 3);
     showResult({ ball: '🏆', title: 'תפסתם הכל!', text: `נשארו לכם ${C.lives} לבבות. כל הכבוד!`, ms, timeNote, card, celebrate: true });
   } else {
     sMiss(); showResult({ ball: '😅', title: 'השוער התעייף', text: `תפסתם ${C.score} מתוך ${C.goal}. נסו שוב!`, ms, timeNote: '', card: null, celebrate: false });
@@ -1150,14 +1167,23 @@ function catchLoop(now){
   C.spawn -= dt;
   if (C.spawn <= 0) {
     C.spawn = Math.max(.4, .85 - C.score * .05);
+    if (C.kind === 'word') { // a picture falls: the spoken word's picture, or a different one
+      const tk = wkey(C.target), others = C.pool.filter(w => wkey(w) !== tk && !(w.emoji && w.emoji === C.target.emoji) && !(artOf(w) && artOf(w) === artOf(C.target)));
+      const w = Math.random() < .45 ? C.target : others[Math.random() * others.length | 0];
+      C.items.push({ x: 36 + Math.random() * (C.W - 72), y: -40, v: 120 + Math.min(C.score, 12) * 12 + Math.random() * 30, w });
+    } else {
     const l = Math.random() < .45 ? C.target : C.letters[Math.random() * C.letters.length | 0];
     C.items.push({ x: 28 + Math.random() * (C.W - 56), y: -30, v: 130 + Math.min(C.score, 12) * 14 + Math.random() * 40, l, t: Math.random() < .5 ? l : l.toLowerCase() }); // l = the letter, t = how it is drawn (capital or small)
+    }
   }
   for (const it of C.items) {
     it.y += it.v * dt;
-    if (!it.dead && Math.hypot(it.x - C.kx, it.y - C.ky) < 50) {
+    if (!it.dead && Math.hypot(it.x - C.kx, it.y - C.ky) < (it.w ? 58 : 50)) {
       it.dead = true;
-      if (it.l === C.target) { C.score++; sPop(); if (C.score >= C.goal) { C.hud(); return endCatch(true); } C.newTarget(); }
+      const hit = it.w ? wkey(it.w) === wkey(C.target) : it.l === C.target;
+      if (it.w) noteWord(C.target.word, hit);
+      if (hit && it.w) C.items.forEach(o => { if (o.w && wkey(o.w) === wkey(C.target)) o.dead = true; }); // other pictures of the word just caught disappear
+      if (hit) { C.score++; sPop(); if (C.score >= C.goal) { C.hud(); return endCatch(true); } C.newTarget(); }
       else { C.lives--; sMiss(); C.hud(); if (C.lives <= 0) return endCatch(false); }
       C.hud();
     }
@@ -1166,6 +1192,13 @@ function catchLoop(now){
   C.items = C.items.filter(i => !i.dead);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const it of C.items) {
+    if (it.w) { // picture ball
+      ctx.beginPath(); ctx.arc(it.x, it.y, 36, 0, 7); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#222'; ctx.stroke();
+      const im = C.imgs[wkey(it.w)];
+      if (im) { if (im.complete && im.naturalWidth) ctx.drawImage(im, it.x - 27, it.y - 27, 54, 54); }
+      else { ctx.font = '44px serif'; ctx.fillText(it.w.emoji || '❓', it.x, it.y + 3); }
+      continue;
+    }
     ctx.beginPath(); ctx.arc(it.x, it.y, 26, 0, 7); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#222'; ctx.stroke();
     ctx.fillStyle = '#0d2a1c'; ctx.font = '700 28px Fredoka, sans-serif'; ctx.fillText(it.t, it.x, it.y + 2);
   }
