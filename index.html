@@ -399,6 +399,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   <button class="say" id="resSay" hidden></button>
   <div class="rec" id="resQuest"></div>
   <div id="resCard"></div>
+  <div class="cnt" id="resCount"><span>כמה סיבובים במשחק הבא?</span><div id="resCntBtns"></div></div>
   <button class="btn green" id="again">שחקו שוב</button>
   <button class="btn ghost" id="resCards">⭐ לקלפים שלי</button>
   <button class="btn ghost" data-home>חזרה לאצטדיון</button>
@@ -937,6 +938,13 @@ function renderCount(){
   const h = $('cntBtns'); h.textContent = '';
   [10, 20, 30, 40].forEach(n => { const b = document.createElement('button'); b.textContent = n; if (state.rounds === n) b.className = 'on'; b.onclick = () => { state.rounds = n; save(); refreshHome(); }; h.appendChild(b); });
 }
+// "Play again" lets him choose how many rounds, for the games that have a round count.
+const COUNT_GAMES = COUNTED.concat('flash');
+function renderResCount(){
+  const box = $('resCount'); box.hidden = !COUNT_GAMES.includes(lastMode); if (box.hidden) return;
+  const h = $('resCntBtns'); h.textContent = '';
+  [10, 20, 30, 40].forEach(n => { const b = document.createElement('button'); b.textContent = n; if (state.rounds === n) b.className = 'on'; b.onclick = () => { state.rounds = n; save(); renderResCount(); }; h.appendChild(b); });
+}
 function startGame(mode){
   ensureAudio(); lastMode = mode;
   if (state.letters.length < 2) { toast('יש לבחור לפחות 2 אותיות באזור ההורים'); return; }
@@ -1011,7 +1019,7 @@ function showResult({ ball, title, text, ms, score, scoreLbl, timeNote, card, ce
     const ch = timeNote === 'first' ? FIRST_CHEER : CHEERS[cheerIdx++ % CHEERS.length];
     sy.textContent = ''; sy.append(mk('b', '', ch[0]), mk('span', '', ch[1])); // text only, no speech
   }
-  $('resQuest').textContent = quest || '';
+  $('resQuest').textContent = quest || ''; renderResCount();
   const rc = $('resCard'); rc.textContent = '';
   if (card) { const d = document.createElement('div'); d.className = 'pop'; d.innerHTML = cardSVG(card, true); const t = document.createElement('div'); t.className = 'rec'; t.textContent = 'זכיתם בקלף: ' + card.name + '!'; rc.append(d, t); }
   if (celebrate || timeNote === 'record' || card) { confetti(); sGoal(); }
