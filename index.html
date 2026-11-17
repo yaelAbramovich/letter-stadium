@@ -1122,7 +1122,7 @@ function startCatch(){
   cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr;
   const W = cv.clientWidth, H = cv.clientHeight;
   C = { letters: state.letters.slice(), score: 0, lives: 3, goal: state.rounds, items: [], kx: W / 2, ky: H - 70, W, H, dpr, run: true, spawn: 0, last: performance.now(), target: '' };
-  const hud = () => { $('cLives').textContent = '❤️'.repeat(C.lives) + '🖤'.repeat(3 - C.lives); $('cScore').textContent = C.score + '/' + C.goal; $('cTarget').textContent = C.target; };
+  const hud = () => { $('cLives').textContent = '❤️'.repeat(C.lives) + '🖤'.repeat(3 - C.lives); $('cScore').textContent = C.score + '/' + C.goal; $('cTarget').textContent = C.target ? C.target + ' ' + C.target.toLowerCase() : '?'; };
   C.hud = hud;
   C.newTarget = () => { const o = C.letters.filter(l => l !== C.target); C.target = o[Math.random() * o.length | 0]; hud(); speakLetter(C.target); };
   C.newTarget(); startClock($('cClock'));
@@ -1151,7 +1151,7 @@ function catchLoop(now){
   if (C.spawn <= 0) {
     C.spawn = Math.max(.4, .85 - C.score * .05);
     const l = Math.random() < .45 ? C.target : C.letters[Math.random() * C.letters.length | 0];
-    C.items.push({ x: 28 + Math.random() * (C.W - 56), y: -30, v: 130 + Math.min(C.score, 12) * 14 + Math.random() * 40, l });
+    C.items.push({ x: 28 + Math.random() * (C.W - 56), y: -30, v: 130 + Math.min(C.score, 12) * 14 + Math.random() * 40, l, t: Math.random() < .5 ? l : l.toLowerCase() }); // l = the letter, t = how it is drawn (capital or small)
   }
   for (const it of C.items) {
     it.y += it.v * dt;
@@ -1167,7 +1167,7 @@ function catchLoop(now){
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const it of C.items) {
     ctx.beginPath(); ctx.arc(it.x, it.y, 26, 0, 7); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#222'; ctx.stroke();
-    ctx.fillStyle = '#0d2a1c'; ctx.font = '700 28px Fredoka, sans-serif'; ctx.fillText(it.l, it.x, it.y + 2);
+    ctx.fillStyle = '#0d2a1c'; ctx.font = '700 28px Fredoka, sans-serif'; ctx.fillText(it.t, it.x, it.y + 2);
   }
   ctx.font = '56px serif'; ctx.fillText('🧤', C.kx, C.ky);
   requestAnimationFrame(catchLoop);
