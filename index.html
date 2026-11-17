@@ -206,6 +206,14 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 .cnt button.on{background:var(--gold);opacity:1}
 .say{pointer-events:none;display:block;margin:6px auto 8px;border:0;border-radius:18px;padding:10px 18px;background:var(--gold);color:var(--ink);box-shadow:0 4px 0 #b39500;text-align:center;font-weight:900}
 .say b{display:block;font-family:'Fredoka',sans-serif;font-size:26px;direction:ltr}.say span{font-size:15px}
+.quest{background:#f6f8f4;color:var(--ink);border-radius:20px;padding:10px 12px;margin:0 0 8px;flex-shrink:0}
+.quest h2{margin:0 0 6px;font-size:17px}
+.qbody{display:flex;gap:10px;align-items:center}
+.qcard{flex:0 0 74px}.qcard svg{width:100%;height:auto;display:block}.qcard div{font-size:12px;font-weight:900;text-align:center;margin-top:2px}
+.qlist{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+.qrow{display:flex;align-items:center;gap:8px;width:100%;text-align:right;border:0;border-radius:12px;background:#fff;color:var(--ink);padding:6px 10px;box-shadow:0 3px 0 #b8c4bd}
+.qrow.done{background:#c9f5d6;box-shadow:0 3px 0 #86d6a0}
+.qrow .qi{font-size:20px}.qrow b{display:block;font-size:14px}.qrow small{display:block;font-size:12px;opacity:.85}
 .ctabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;flex-shrink:0}
 .ctabs button{flex:0 0 auto;border:0;border-radius:14px;padding:8px 12px;font-weight:900;font-size:14px;background:rgba(255,255,255,.85);color:var(--ink);white-space:nowrap}
 .ctabs button.on{background:var(--gold);box-shadow:0 3px 0 #b39500}
@@ -241,6 +249,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
     <div class="stat"><b id="stBest">0</b><span>שיא משחק</span></div>
     <div class="stat"><b id="stStreak">0</b><span>רצף שיא</span></div>
   </div>
+  <div class="quest" id="quest"></div>
   <div class="cnt"><span>כמה סיבובים בכל משחק?</span><small>פנדלים, תופסים כדורים, כרטיסיות ועוד</small><div id="cntBtns"></div></div>
   <div class="glist" id="gList"></div>
   <button class="btn" id="toBook" style="background:#7fd1ff;box-shadow:0 6px 0 #3a97cc">📖 ספר האותיות</button>
@@ -388,6 +397,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   <div class="stat" style="margin:0 0 6px"><b id="resTime">0.0s</b><span id="resLbl">הזמן שלכם</span></div>
   <div class="rec" id="resRec"></div>
   <button class="say" id="resSay" hidden></button>
+  <div class="rec" id="resQuest"></div>
   <div id="resCard"></div>
   <button class="btn green" id="again">שחקו שוב</button>
   <button class="btn ghost" id="resCards">⭐ לקלפים שלי</button>
@@ -449,6 +459,11 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
     <div class="wlist" id="wList" style="margin-top:10px"></div>
   </div>
 
+  <div class="panel">
+    <h2>🎯 אתגרי הקלף</h2>
+    <p style="margin:0 0 8px;font-size:13px;opacity:.85">כל קלף נפתח אחרי 3 אתגרים (אחד באותיות, אחד במילים). אם אתגר לא מתאים אפשר להגריל אתגרים חדשים לאותו קלף.</p>
+    <button class="btn small" id="rerollQuest">🎲 הגרלת אתגרים חדשים</button>
+  </div>
   <div class="panel">
     <h2>🐢 ניחושים מהירים</h2>
     <p id="guessTxt" style="margin:0 0 6px;font-weight:900"></p>
@@ -662,7 +677,7 @@ const artOf = (w) => (w && (w.img || ART[String(w.word || '').toLowerCase()])) |
 
 /* ---------- storage ---------- */
 function emptyRecords(){ return { goals: 0, bestScore: 0, bestStreak: 0, matches: 0, times: {}, scores: {}, by: {} }; }
-function defaults(){ return { ver: 0, letters: ['A', 'B', 'N'], words: DEFAULT_WORDS.map(w => ({...w})), records: emptyRecords(), cards: [], players: [], me: '', letterInfo: {}, wstats: {}, rounds: 10, pbs: {}, guesses: {} }; }
+function defaults(){ return { ver: 0, letters: ['A', 'B', 'N'], words: DEFAULT_WORDS.map(w => ({...w})), records: emptyRecords(), cards: [], players: [], me: '', letterInfo: {}, wstats: {}, rounds: 10, pbs: {}, guesses: {}, quest: null }; }
 let state = defaults();
 function load(){
   try { const raw = localStorage.getItem(KEY); if (raw) { const v = sanitize(JSON.parse(raw)); if (v) state = v; } } catch (_) {}
@@ -740,7 +755,10 @@ function sanitize(d){
     if ((pid !== '_' && !players.some(p => p.id === pid)) || !Array.isArray(d.guesses[pid])) continue;
     guesses[pid] = d.guesses[pid].filter(t => Number.isFinite(t) && t > 0).slice(-300);
   }
-  return { ver: num(d.ver), letters, words, cards, players, me, letterInfo, wstats, rounds, pbs, guesses,
+  let quest = null; // the challenges for the next card
+  if (isObj(d.quest) && CARDS.some(c => c.id === d.quest.card) && Array.isArray(d.quest.ch) && d.quest.ch.length === 3 && d.quest.ch.every(x => isObj(x) && QG[x.g]))
+    quest = { card: d.quest.card, ch: d.quest.ch.map(x => ({ g: x.g, done: x.done === true })) };
+  return { ver: num(d.ver), letters, words, cards, players, me, letterInfo, wstats, rounds, pbs, guesses, quest,
     records: { goals: num(r.goals), bestScore: num(r.bestScore), bestStreak: num(r.bestStreak), matches: num(r.matches), times, scores, by } };
 }
 
@@ -905,7 +923,7 @@ function refreshHome(){
   $('stGoals').textContent = r.goals; $('stBest').textContent = r.bestScore; $('stStreak').textContent = r.bestStreak;
   { const ai = activeCol(), col = COLLECTIONS[ai < 0 ? COLLECTIONS.length - 1 : ai];
     $('toCards').textContent = ai < 0 ? '🏆 כל האוספים שלמים!' : `${col.icon} האוסף שלי: ${col.title} (${colHave(ai)}/${col.cards.length})`; }
-  renderCount();
+  renderCount(); renderQuest();
   const mb = $('meBadge'); mb.textContent = '';
   if (me) { const sv = document.createElement('span'); sv.innerHTML = shirtSVG(me.color, me.num); const nm = document.createElement('span'); nm.textContent = me.name; const sm = document.createElement('small'); sm.textContent = '▾ החלפת שחקן'; mb.append(sv, nm, sm); }
   const gl = $('gList'); gl.textContent = '';
@@ -928,15 +946,59 @@ function startGame(mode){
 /* ---------- result + card rewards ---------- */
 const colHave = (i) => COLLECTIONS[i].cards.filter(c => state.cards.includes(c.id)).length;
 const activeCol = () => COLLECTIONS.findIndex((col, i) => colHave(i) < col.cards.length); // -1 when everything is collected
-function awardCard(r){ // r in 0..1 = how well she played; better play, better odds of rare/gold. Cards come from the first unfinished collection.
-  const ai = activeCol(); if (ai < 0) return null;
-  const unowned = COLLECTIONS[ai].cards.filter(c => !state.cards.includes(c.id));
-  const roll = Math.random(), rar = roll < r * .12 ? 2 : roll < r * .42 ? 1 : 0;
-  let pool = unowned.filter(c => c.rar === rar); if (!pool.length) pool = unowned;
-  const c = pool[Math.random() * pool.length | 0]; state.cards.push(c.id);
-  return activeCol() === ai ? c : Object.assign({}, c, { completes: ai }); // completes = this card finished collection ai
+/* ---------- card challenges: each card needs 3 challenges (one letters, one words, one of either) ---------- */
+const LETTER_GAMES = ['penalty', 'catch', 'memory', 'maze', 'hunt'], VOCAB_GAMES = ['words', 'vocab', 'catchw', 'wmem', 'whunt', 'flash'];
+const QG = { penalty: { m: 'ratio' }, catch: { m: 'lives' }, memory: { m: 'moves' }, maze: { m: 'mist' }, hunt: { m: 'mist' },
+  words: { m: 'ratio' }, vocab: { m: 'ratio' }, catchw: { m: 'lives' }, wmem: { m: 'moves' }, whunt: { m: 'mist' }, flash: { m: 'ratio' } };
+// The goal gets harder with the card: tier 0 = common, 1 = rare, 2 = gold. m = what the game reports.
+function goalOf(game, tier, m = {}){
+  const k = QG[game].m;
+  if (k === 'ratio') { const need = [.6, .8, 1][tier]; return { ok: (m.ratio || 0) >= need - 1e-9, text: tier === 2 ? 'כל התשובות נכונות' : `לפחות ${need * 100}% תשובות נכונות` }; }
+  if (k === 'lives') { const need = [1, 2, 3][tier]; return { ok: (m.lives || 0) >= need, text: ['לתפוס הכל', 'לתפוס הכל ולהישאר עם 2 לבבות לפחות', 'לתפוס הכל בלי לאבד לב'][tier] }; }
+  if (k === 'moves') { const p = m.pairs || 6, max = [p * 3, p * 2, p + 2][tier]; return { ok: (m.moves || 999) <= max, text: ['עד 3 ניסיונות לכל זוג', 'עד 2 ניסיונות לכל זוג', 'כמעט בלי טעויות'][tier] }; }
+  const max = [4, 2, 0][tier]; return { ok: m.mist != null && m.mist <= max, text: ['עד 4 טעויות', 'עד 2 טעויות', 'בלי אף טעות'][tier] };
 }
-function showResult({ ball, title, text, ms, score, scoreLbl, timeNote, card, celebrate }){
+const pick1 = (a) => a[Math.random() * a.length | 0];
+function newQuest(){
+  const ai = activeCol(); if (ai < 0) return null;
+  const c = COLLECTIONS[ai].cards.find(c => !state.cards.includes(c.id)), l = pick1(LETTER_GAMES), v = pick1(VOCAB_GAMES);
+  const x = pick1(LETTER_GAMES.concat(VOCAB_GAMES).filter(g => g !== l && g !== v));
+  return { card: c.id, ch: [l, v, x].map(g => ({ g, done: false })) };
+}
+function ensureQuest(){
+  const q = state.quest;
+  if (!q || state.cards.includes(q.card)) state.quest = newQuest();
+  return state.quest;
+}
+const gameInfo = (id) => GAMES.find(g => g.id === id) || { icon: '🎮', title: id };
+// Called when a game ends. Returns { card, msg }: the card is set only when the 3rd challenge of the quest is done.
+function questCheck(game, m){
+  const q = ensureQuest(); if (!q || !QG[game]) return { card: null, msg: '' };
+  const target = CARDS.find(c => c.id === q.card), i = q.ch.findIndex(x => x.g === game && !x.done);
+  if (i < 0) return { card: null, msg: '' };
+  const goal = goalOf(game, target.rar, m);
+  if (!goal.ok) return { card: null, msg: '🎯 האתגר: ' + goal.text + ' – עוד לא הצלחתם, ננסה שוב!' };
+  q.ch[i].done = true;
+  const n = q.ch.filter(x => x.done).length;
+  if (n < 3) return { card: null, msg: `✅ אתגר הושלם! (${n}/3)` };
+  state.cards.push(target.id); state.quest = null; ensureQuest(); // card won: the next card gets new challenges
+  return { card: colHave(target.col) === COLLECTIONS[target.col].cards.length ? Object.assign({}, target, { completes: target.col }) : target, msg: '🎉 כל האתגרים הושלמו!' };
+}
+function renderQuest(){
+  const box = $('quest'), q = ensureQuest(); box.textContent = '';
+  if (!q) { box.hidden = true; return; }
+  box.hidden = false;
+  const c = CARDS.find(x => x.id === q.card), h = mk('h2', '', `🎯 ${COLLECTIONS[c.col].icon} האתגר לקלף הבא (${RAR_NAME[c.rar]} ${'★'.repeat(c.rar + 1)})`);
+  const body = mk('div', 'qbody'), qc = mk('div', 'qcard'), list = mk('div', 'qlist');
+  qc.innerHTML = cardSVG(c, false); qc.appendChild(mk('div', '', q.ch.filter(x => x.done).length + '/3'));
+  q.ch.forEach(x => {
+    const gi = gameInfo(x.g), goal = goalOf(x.g, c.rar), b = document.createElement('button'); b.className = 'qrow' + (x.done ? ' done' : '');
+    b.append(mk('span', 'qi', x.done ? '✅' : gi.icon), (() => { const d = mk('div', ''); d.append(mk('b', '', gi.title + (LETTER_GAMES.includes(x.g) ? ' · אותיות' : ' · מילים')), mk('small', '', goal.text)); return d; })());
+    b.onclick = () => startGame(x.g); list.appendChild(b);
+  });
+  body.append(qc, list); box.append(h, body);
+}
+function showResult({ ball, title, text, ms, score, scoreLbl, timeNote, card, celebrate, quest }){
   $('resBall').textContent = ball; $('resTitle').textContent = title; $('resText').textContent = text;
   if (score != null) { $('resTime').textContent = score; $('resLbl').textContent = scoreLbl || 'שערים ב-45 שניות'; }
   else { $('resTime').textContent = ms == null ? '—' : fmt(ms); $('resLbl').textContent = 'הזמן שלכם'; }
@@ -949,8 +1011,9 @@ function showResult({ ball, title, text, ms, score, scoreLbl, timeNote, card, ce
     const ch = timeNote === 'first' ? FIRST_CHEER : CHEERS[cheerIdx++ % CHEERS.length];
     sy.textContent = ''; sy.append(mk('b', '', ch[0]), mk('span', '', ch[1])); // text only, no speech
   }
+  $('resQuest').textContent = quest || '';
   const rc = $('resCard'); rc.textContent = '';
-  if (card) { const d = document.createElement('div'); d.className = 'pop'; d.innerHTML = cardSVG(card, true); const t = document.createElement('div'); t.className = 'rec'; t.textContent = 'קלף חדש: ' + card.name + '!'; rc.append(d, t); }
+  if (card) { const d = document.createElement('div'); d.className = 'pop'; d.innerHTML = cardSVG(card, true); const t = document.createElement('div'); t.className = 'rec'; t.textContent = 'זכיתם בקלף: ' + card.name + '!'; rc.append(d, t); }
   if (celebrate || timeNote === 'record' || card) { confetti(); sGoal(); }
   save(); show('result');
   if (card && card.completes != null) setTimeout(() => megaCelebrate(card.completes), 1600);
@@ -1093,6 +1156,7 @@ function thinkCard(tapped){
   clearInterval(thinkT); thinkT = setInterval(() => { n--; if (n > 0) ok.textContent = `הבנתי, עוד פעם (${n})`; else { clearInterval(thinkT); ok.disabled = false; ok.textContent = 'הבנתי, עוד פעם'; } }, 1000);
 }
 function closeThink(){ clearInterval(thinkT); $('think').classList.remove('on'); clockRelease(); }
+$('rerollQuest').onclick = () => { state.quest = null; ensureQuest(); save(); toast('אתגרים חדשים הוגרלו ✓'); };
 $('thinkOk').onclick = () => { closeThink(); if (G && !G.over) nextQ(); };
 
 function placeFly(){ // ball sits under the answers, glove in the middle of them (absolute inside #play)
@@ -1124,7 +1188,7 @@ function shoot(btn, l){
 function finishFast(){
   if (!G || G.over) return; G.over = true; G.lock = true; stopClock();
   const r = state.records; r.goals += G.goals; r.matches++; r.bestStreak = Math.max(r.bestStreak, G.bestStreak);
-  const note = recordScore('fast', G.goals), card = awardCard(Math.min(1, G.goals / 12));
+  const note = recordScore('fast', G.goals), card = null; // Fast Attack is for records, cards come from challenges
   showResult({ ball: G.goals >= 12 ? '🏆' : G.goals >= 7 ? '🥈' : '⚽', title: G.goals >= 12 ? 'מתקפה מטורפת!' : G.goals >= 7 ? 'כל הכבוד!' : 'עוד סיבוב לשבור שיא?',
     text: `הבקעתם ${G.goals} שערים ב-45 שניות. רצף הצלחות: ${G.bestStreak}.`, score: G.goals, timeNote: note, card, celebrate: G.goals >= 7 });
 }
@@ -1132,12 +1196,12 @@ function finishQuiz(){
   const ms = stopClock(), r = state.records, std = G.rounds === STD_ROUNDS, prevBest = r.bestScore, perfect = G.goals === G.rounds, gi = Math.floor(G.goals);
   r.goals += gi; r.matches++; if (std) r.bestScore = Math.max(r.bestScore, gi); r.bestStreak = Math.max(r.bestStreak, G.bestStreak);
   const timeNote = perfect ? recordTime(G.mode, ms, G.rounds) : ''; // time records only count for a perfect match
-  const card = awardCard(G.goals / G.rounds), newBest = std && gi > prevBest && gi > 0;
+  const qr = questCheck(G.mode, { ratio: G.goals / G.rounds }), card = qr.card, newBest = std && gi > prevBest && gi > 0;
   showResult({
     ball: G.goals >= 8 ? '🏆' : G.goals >= 5 ? '🥈' : '⚽',
     title: newBest ? 'שיא חדש! 🎉' : G.goals >= 8 ? 'כוכבים!' : G.goals >= 5 ? 'כל הכבוד!' : 'ממשיכים להתאמן!',
     text: `הבקעתם ${G.goals} שערים מתוך ${G.rounds}. רצף הצלחות: ${G.bestStreak}.` + (perfect ? '' : ' (שיא זמן נספר רק כשמבקיעים בכל הבעיטות)'),
-    ms, timeNote, card, celebrate: G.goals >= 5
+    ms, timeNote, card, celebrate: G.goals >= 5, quest: qr.msg
   });
 }
 
@@ -1179,10 +1243,10 @@ function endCatch(win){
   C.run = false; const ms = stopClock();
   if (win) {
     const r = state.records; r.matches++;
-    const timeNote = recordTime(C.mode, ms, C.goal), card = awardCard(C.lives / 3);
-    showResult({ ball: '🏆', title: 'תפסתם הכל!', text: `נשארו לכם ${C.lives} לבבות. כל הכבוד!`, ms, timeNote, card, celebrate: true });
+    const timeNote = recordTime(C.mode, ms, C.goal), qr = questCheck(C.mode, { lives: C.lives }), card = qr.card;
+    showResult({ ball: '🏆', title: 'תפסתם הכל!', text: `נשארו לכם ${C.lives} לבבות. כל הכבוד!`, ms, timeNote, card, celebrate: true, quest: qr.msg });
   } else {
-    sMiss(); showResult({ ball: '😅', title: 'השוער התעייף', text: `תפסתם ${C.score} מתוך ${C.goal}. נסו שוב!`, ms, timeNote: '', card: null, celebrate: false });
+    sMiss(); showResult({ ball: '😅', title: 'השוער התעייף', text: `תפסתם ${C.score} מתוך ${C.goal}. נסו שוב!`, ms, timeNote: '', card: null, celebrate: false, quest: questCheck(C.mode, { lives: 0 }).msg });
   }
 }
 function catchLoop(now){
@@ -1235,8 +1299,8 @@ function catchLoop(now){
 function pickTarget(){ return state.letters[Math.random() * state.letters.length | 0]; }
 function finishFind(mode, mistakes, text){
   const ms = stopClock() + mistakes * 3000, r = state.records; r.matches++;
-  const timeNote = recordTime(mode, ms), card = awardCard(mistakes <= 1 ? 1 : mistakes <= 4 ? .7 : .4);
-  showResult({ ball: '🏆', title: mistakes === 0 ? 'מושלם! בלי טעויות!' : 'כל הכבוד!', text: `${text} טעויות: ${mistakes}` + (mistakes ? ` (+${mistakes * 3} שניות)` : '') + '.', ms, timeNote, card, celebrate: true });
+  const timeNote = recordTime(mode, ms), qr = questCheck(mode, { mist: mistakes }), card = qr.card;
+  showResult({ ball: '🏆', title: mistakes === 0 ? 'מושלם! בלי טעויות!' : 'כל הכבוד!', text: `${text} טעויות: ${mistakes}` + (mistakes ? ` (+${mistakes * 3} שניות)` : '') + '.', ms, timeNote, card, celebrate: true, quest: qr.msg });
 }
 
 /* ---------- letter hunt: tap every target letter (N, n) and every word that starts with it ---------- */
@@ -1355,9 +1419,9 @@ $('fcPickNo').onclick = () => $('fcPick').classList.remove('on');
 $('fcYes').onclick = () => flashMark(true); $('fcNo').onclick = () => flashMark(false);
 function finishFlash(){
   const n = FL.words.length, ok = FL.ok, r = state.records; r.matches++;
-  const card = awardCard(ok / n), miss = FL.missed.length ? ' כדאי לתרגל: ' + FL.missed.join(', ') + '.' : ' מושלם!';
+  const qr = questCheck('flash', { ratio: ok / n }), card = qr.card, miss = FL.missed.length ? ' כדאי לתרגל: ' + FL.missed.join(', ') + '.' : ' מושלם!';
   showResult({ ball: ok === n ? '🏆' : ok >= n * .6 ? '🥈' : '📚', title: ok === n ? 'ידעתם הכל!' : ok >= n * .6 ? 'כל הכבוד!' : 'ממשיכים ללמוד!',
-    text: `ידעתם ${ok} מתוך ${n} מילים.` + miss, score: ok, scoreLbl: 'מילים שידעתם', timeNote: '', card, celebrate: ok >= n * .6 });
+    text: `ידעתם ${ok} מתוך ${n} מילים.` + miss, score: ok, scoreLbl: 'מילים שידעתם', timeNote: '', card, celebrate: ok >= n * .6, quest: qr.msg });
 }
 
 /* ---------- memory cards ---------- */
@@ -1390,8 +1454,8 @@ function flip(i, b){
 function finishMemory(){
   const ms = stopClock(), r = state.records; r.matches++;
   const q = M.moves <= M.pairs + 2 ? 1 : M.moves <= M.pairs * 2 ? .7 : .4;
-  const timeNote = recordTime('memory', ms), card = awardCard(q);
-  showResult({ ball: '🏆', title: 'מצאתם את כל הזוגות!', text: `סיימתם ב-${M.moves} ניסיונות.`, ms, timeNote, card, celebrate: true });
+  const timeNote = recordTime('memory', ms), qr = questCheck('memory', { moves: M.moves, pairs: M.pairs }), card = qr.card;
+  showResult({ ball: '🏆', title: 'מצאתם את כל הזוגות!', text: `סיימתם ב-${M.moves} ניסיונות.`, ms, timeNote, card, celebrate: true, quest: qr.msg });
 }
 
 /* ---------- picture games: match / find the picture of a word (no reading needed) ---------- */
@@ -1434,8 +1498,8 @@ function wflip(i, b){
 function finishWMem(){
   const ms = stopClock(), r = state.records; r.matches++;
   const q = WM.moves <= WM.pairs + 2 ? 1 : WM.moves <= WM.pairs * 2 ? .7 : .4;
-  const timeNote = recordTime('wmem', ms), card = awardCard(q);
-  showResult({ ball: '🏆', title: 'התאמתם את כל הזוגות!', text: `סיימתם ב-${WM.moves} ניסיונות.`, ms, timeNote, card, celebrate: true });
+  const timeNote = recordTime('wmem', ms), qr = questCheck('wmem', { moves: WM.moves, pairs: WM.pairs }), card = qr.card;
+  showResult({ ball: '🏆', title: 'התאמתם את כל הזוגות!', text: `סיימתם ב-${WM.moves} ניסיונות.`, ms, timeNote, card, celebrate: true, quest: qr.msg });
 }
 
 function startWHunt(){
