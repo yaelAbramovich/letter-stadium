@@ -983,7 +983,10 @@ const gameInfo = (id) => GAMES.find(g => g.id === id) || { icon: '🎮', title: 
 function questCheck(game, m){
   const q = ensureQuest(); if (!q || !QG[game]) return { card: null, msg: '' };
   const target = CARDS.find(c => c.id === q.card), i = q.ch.findIndex(x => x.g === game && !x.done);
-  if (i < 0) return { card: null, msg: '' };
+  if (i < 0) { // never stay silent: say why this game did not count
+    const left = q.ch.filter(x => !x.done).map(x => gameInfo(x.g).title).join(', '), already = q.ch.some(x => x.g === game && x.done);
+    return { card: null, msg: (already ? '✅ האתגר הזה כבר הושלם.' : 'ℹ️ המשחק הזה לא נספר באתגרים של הקלף הבא.') + (left ? ' נשארו: ' + left : '') };
+  }
   const goal = goalOf(game, target.rar, m);
   if (!goal.ok) return { card: null, msg: '🎯 האתגר: ' + goal.text + ' – עוד לא הצלחתם, ננסה שוב!' };
   q.ch[i].done = true;
