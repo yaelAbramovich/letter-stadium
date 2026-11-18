@@ -212,6 +212,8 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 .qcard{flex:0 0 74px}.qcard svg{width:100%;height:auto;display:block}.qcard div{font-size:12px;font-weight:900;text-align:center;margin-top:2px}
 .qlist{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
 .qrow{display:flex;align-items:center;gap:8px;width:100%;text-align:right;border:0;border-radius:12px;background:#fff;color:var(--ink);padding:6px 10px;box-shadow:0 3px 0 #b8c4bd}
+.qroute{font-weight:900;font-size:13px;margin-top:4px}
+.qprog{display:block}.qbar{height:8px;border-radius:6px;background:#dfe6e1;margin:4px 0}.qbar i{display:block;height:100%;border-radius:6px;background:#2ee66b}
 .qrow.done{background:#c9f5d6;box-shadow:0 3px 0 #86d6a0}
 .qrow .qi{font-size:20px}.qrow b{display:block;font-size:14px}.qrow small{display:block;font-size:12px;opacity:.85}
 .ctabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;flex-shrink:0}
@@ -397,7 +399,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   <div class="stat" style="margin:0 0 6px"><b id="resTime">0.0s</b><span id="resLbl">הזמן שלכם</span></div>
   <div class="rec" id="resRec"></div>
   <button class="say" id="resSay" hidden></button>
-  <div class="rec" id="resQuest"></div>
+  <div class="rec" id="resQuest" style="font-size:17px;white-space:pre-line"></div>
   <div id="resCard"></div>
   <div class="cnt" id="resCount"><span>כמה סיבובים במשחק הבא?</span><div id="resCntBtns"></div></div>
   <button class="btn green" id="again">שחקו שוב</button>
@@ -462,7 +464,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 
   <div class="panel">
     <h2>🎯 אתגרי הקלף</h2>
-    <p style="margin:0 0 8px;font-size:13px;opacity:.85">כל קלף נפתח אחרי 3 אתגרים (אחד באותיות, אחד במילים). אם אתגר לא מתאים אפשר להגריל אתגרים חדשים לאותו קלף.</p>
+    <p style="margin:0 0 8px;font-size:13px;opacity:.85">לכל קלף יש 3 דרכים (שלושה אתגרים, אימון, בונוס). הראשונה שמסתיימת זוכה בקלף. אפשר להגריל דרכים חדשות לאותו קלף.</p>
     <button class="btn small" id="rerollQuest">🎲 הגרלת אתגרים חדשים</button>
   </div>
   <div class="panel">
@@ -758,7 +760,9 @@ function sanitize(d){
   }
   let quest = null; // the challenges for the next card
   if (isObj(d.quest) && CARDS.some(c => c.id === d.quest.card) && Array.isArray(d.quest.ch) && d.quest.ch.length === 3 && d.quest.ch.every(x => isObj(x) && QG[x.g]))
-    quest = { card: d.quest.card, ch: d.quest.ch.map(x => ({ g: x.g, done: x.done === true })) };
+    quest = { card: d.quest.card, ch: d.quest.ch.map(x => ({ g: x.g, done: x.done === true })),
+      pr: isObj(d.quest.pr) ? { n: num(d.quest.pr.n), L: num(d.quest.pr.L), V: num(d.quest.pr.V) } : null,
+      bo: isObj(d.quest.bo) && ['perfect', 'newwords'].includes(d.quest.bo.type) ? { type: d.quest.bo.type, n: num(d.quest.bo.n) } : null };
   return { ver: num(d.ver), letters, words, cards, players, me, letterInfo, wstats, rounds, pbs, guesses, quest,
     records: { goals: num(r.goals), bestScore: num(r.bestScore), bestStreak: num(r.bestStreak), matches: num(r.matches), times, scores, by } };
 }
@@ -967,46 +971,71 @@ function goalOf(game, tier, m = {}){
   const max = [4, 2, 0][tier]; return { ok: m.mist != null && m.mist <= max, text: ['עד 4 טעויות', 'עד 2 טעויות', 'בלי אף טעות'][tier] };
 }
 const pick1 = (a) => a[Math.random() * a.length | 0];
+// Three routes to every card, all counting at once; the first one completed wins the card.
+//  1) the three challenges  2) practice: finish N games (one letters + one words)  3) bonus: perfect games OR new words
+const PRACTICE_NEED = [4, 5, 6], PERFECT_NEED = [1, 2, 3], NEWWORDS_NEED = [8, 12, 20];
+const cardOf = (q) => CARDS.find(c => c.id === q.card);
+function newBonus(tier){ // "new words" only when he still has enough unseen words, otherwise "perfect games"
+  const unseen = state.words.filter(w => !(state.wstats[wkey(w)] || {}).n).length;
+  return { type: unseen >= NEWWORDS_NEED[tier] + 2 && Math.random() < .5 ? 'newwords' : 'perfect', n: 0 };
+}
 function newQuest(){
   const ai = activeCol(); if (ai < 0) return null;
   const c = COLLECTIONS[ai].cards.find(c => !state.cards.includes(c.id)), l = pick1(LETTER_GAMES), v = pick1(VOCAB_GAMES);
   const x = pick1(LETTER_GAMES.concat(VOCAB_GAMES).filter(g => g !== l && g !== v));
-  return { card: c.id, ch: [l, v, x].map(g => ({ g, done: false })) };
+  return { card: c.id, ch: [l, v, x].map(g => ({ g, done: false })), pr: { n: 0, L: 0, V: 0 }, bo: newBonus(c.rar) };
 }
 function ensureQuest(){
   const q = state.quest;
   if (!q || state.cards.includes(q.card)) state.quest = newQuest();
+  else { if (!q.pr) q.pr = { n: 0, L: 0, V: 0 }; if (!q.bo) q.bo = newBonus(cardOf(q).rar); } // older saved quests only had the challenges
   return state.quest;
 }
+function bumpNewWord(){ const q = state.quest; if (q && q.bo && q.bo.type === 'newwords') q.bo.n++; }
 const gameInfo = (id) => GAMES.find(g => g.id === id) || { icon: '🎮', title: id };
-// Called when a game ends. Returns { card, msg }: the card is set only when the 3rd challenge of the quest is done.
-function questCheck(game, m){
-  const q = ensureQuest(); if (!q || !QG[game]) return { card: null, msg: '' };
-  const target = CARDS.find(c => c.id === q.card), i = q.ch.findIndex(x => x.g === game && !x.done);
-  if (i < 0) { // never stay silent: say why this game did not count
-    const left = q.ch.filter(x => !x.done).map(x => gameInfo(x.g).title).join(', '), already = q.ch.some(x => x.g === game && x.done);
-    return { card: null, msg: (already ? '✅ האתגר הזה כבר הושלם.' : 'ℹ️ המשחק הזה לא נספר באתגרים של הקלף הבא.') + (left ? ' נשארו: ' + left : '') };
+const bonusInfo = (q, tier) => q.bo.type === 'perfect' ? { icon: '⭐', label: 'משחקים מושלמים', need: PERFECT_NEED[tier] } : { icon: '⭐', label: 'מילים חדשות', need: NEWWORDS_NEED[tier] };
+// Called when a game ends. Returns { card, msg }: the card is set when one of the three routes is completed.
+function questCheck(game, m = {}){
+  const q = ensureQuest(); if (!q) return { card: null, msg: '' };
+  const target = cardOf(q), tier = target.rar, lines = [], known = !!QG[game], prNeed = PRACTICE_NEED[tier], bi = bonusInfo(q, tier);
+  if (known) {
+    const i = q.ch.findIndex(x => x.g === game && !x.done); // route 1: the challenges
+    if (i >= 0) {
+      const goal = goalOf(game, tier, m);
+      if (goal.ok) { q.ch[i].done = true; lines.push(`🎯 אתגר הושלם! (${q.ch.filter(x => x.done).length}/3)`); }
+      else lines.push('🎯 האתגר: ' + goal.text + ' – עוד לא הצלחתם, ננסה שוב!');
+    } else if (q.ch.some(x => x.g === game && x.done)) lines.push('🎯 האתגר הזה כבר הושלם.');
+    if (!m.lost) { // route 2: practice counts every finished game, unless he was tapping at random
+      if ((m.guesses || 0) <= 1) { q.pr.n++; q.pr[LETTER_GAMES.includes(game) ? 'L' : 'V']++; } else lines.push('🔁 המשחק לא נספר באימון (יותר מדי ניחושים מהירים)');
+      if (q.bo.type === 'perfect' && goalOf(game, 2, m).ok) q.bo.n++; // route 3: a perfect game
+    }
   }
-  const goal = goalOf(game, target.rar, m);
-  if (!goal.ok) return { card: null, msg: '🎯 האתגר: ' + goal.text + ' – עוד לא הצלחתם, ננסה שוב!' };
-  q.ch[i].done = true;
-  const n = q.ch.filter(x => x.done).length;
-  if (n < 3) return { card: null, msg: `✅ אתגר הושלם! (${n}/3)` };
-  state.cards.push(target.id); state.quest = null; ensureQuest(); // card won: the next card gets new challenges
-  return { card: colHave(target.col) === COLLECTIONS[target.col].cards.length ? Object.assign({}, target, { completes: target.col }) : target, msg: '🎉 כל האתגרים הושלמו!' };
+  lines.push(`🔁 מתאמנים ${Math.min(q.pr.n, prNeed)}/${prNeed}`, `${bi.icon} ${bi.label} ${Math.min(q.bo.n, bi.need)}/${bi.need}`);
+  const won = q.ch.every(x => x.done) ? '🎯 האתגרים' : q.pr.n >= prNeed && q.pr.L > 0 && q.pr.V > 0 ? '🔁 מתאמנים' : q.bo.n >= bi.need ? `${bi.icon} ${bi.label}` : '';
+  if (!won) return { card: null, msg: lines.join('\n') };
+  state.cards.push(target.id); state.quest = null; ensureQuest(); // card won: the next card gets new routes
+  return { card: colHave(target.col) === COLLECTIONS[target.col].cards.length ? Object.assign({}, target, { completes: target.col }) : target, msg: '🎉 קיבלתם את הקלף! הדרך: ' + won };
 }
 function renderQuest(){
   const box = $('quest'), q = ensureQuest(); box.textContent = '';
   if (!q) { box.hidden = true; return; }
   box.hidden = false;
-  const c = CARDS.find(x => x.id === q.card), h = mk('h2', '', `🎯 ${COLLECTIONS[c.col].icon} האתגר לקלף הבא (${RAR_NAME[c.rar]} ${'★'.repeat(c.rar + 1)})`);
+  const c = cardOf(q), tier = c.rar, h = mk('h2', '', `🎯 ${COLLECTIONS[c.col].icon} איך מרוויחים את הקלף הבא? (${RAR_NAME[tier]} ${'★'.repeat(tier + 1)})`);
   const body = mk('div', 'qbody'), qc = mk('div', 'qcard'), list = mk('div', 'qlist');
-  qc.innerHTML = cardSVG(c, false); qc.appendChild(mk('div', '', q.ch.filter(x => x.done).length + '/3'));
+  qc.innerHTML = cardSVG(c, false);
+  list.appendChild(mk('div', 'qroute', '🎯 דרך 1: שלושה אתגרים'));
   q.ch.forEach(x => {
-    const gi = gameInfo(x.g), goal = goalOf(x.g, c.rar), b = document.createElement('button'); b.className = 'qrow' + (x.done ? ' done' : '');
+    const gi = gameInfo(x.g), goal = goalOf(x.g, tier), b = document.createElement('button'); b.className = 'qrow' + (x.done ? ' done' : '');
     b.append(mk('span', 'qi', x.done ? '✅' : gi.icon), (() => { const d = mk('div', ''); d.append(mk('b', '', gi.title + (LETTER_GAMES.includes(x.g) ? ' · אותיות' : ' · מילים')), mk('small', '', goal.text)); return d; })());
     b.onclick = () => startGame(x.g); list.appendChild(b);
   });
+  const bar = (n, need, label, hint) => { const d = mk('div', 'qrow qprog'), t = mk('div', ''), tr = mk('div', 'qbar'), f = mk('i', ''); f.style.width = Math.min(100, n / need * 100) + '%'; tr.appendChild(f);
+    t.append(mk('b', '', label + ' · ' + Math.min(n, need) + '/' + need), tr); if (hint) t.appendChild(mk('small', '', hint)); d.appendChild(t); return d; };
+  const bi = bonusInfo(q, tier), prNeed = PRACTICE_NEED[tier];
+  list.appendChild(mk('div', 'qroute', '🔁 דרך 2: אימון – משחקים כמה שרוצים'));
+  list.appendChild(bar(q.pr.n, prNeed, `סיימו ${prNeed} משחקים`, `🔤 אותיות ${q.pr.L ? '✅' : '⬜'} · 📖 מילים ${q.pr.V ? '✅' : '⬜'} (צריך משחק אחד מכל סוג)`));
+  list.appendChild(mk('div', 'qroute', '⭐ דרך 3: בונוס'));
+  list.appendChild(bar(q.bo.n, bi.need, bi.label, q.bo.type === 'perfect' ? 'בלי אף טעות' : 'מילים שעוד לא פגשתם'));
   body.append(qc, list); box.append(h, body);
 }
 function showResult({ ball, title, text, ms, score, scoreLbl, timeNote, card, celebrate, quest }){
@@ -1076,6 +1105,7 @@ function smartOrder(pool){
 }
 function noteWord(word, ok){
   const k = String(word).toLowerCase(), st = state.wstats[k] || (state.wstats[k] = { n: 0, m: 0 });
+  if (!st.n) bumpNewWord(); // first time he meets this word
   st.n++; st.m = ok ? Math.max(0, st.m - 1) : st.m + 1;
 }
 const isPen = (m) => m === 'penalty' || m === 'fast';
@@ -1087,7 +1117,7 @@ function startQuiz(mode){
   if (mode === 'vocab' && new Set(vpool.map(w => w.he)).size < 4) { toast('צריך לפחות 4 מילים עם תרגום בעברית'); return; }
   const padN = mode === 'fast' ? 60 : state.rounds; // Fast Attack needs a long list
   G = { mode, letters, lpool: padTo(shuffle(letters), padN), wpool: padTo(smartOrder(wpool), padN), vpool: padTo(smartOrder(vpool), padN),
-        i: 0, goals: 0, miss: 0, streak: 0, bestStreak: 0, lock: false, rounds: state.rounds };
+        i: 0, goals: 0, miss: 0, gcount: 0, streak: 0, bestStreak: 0, lock: false, rounds: state.rounds };
   $('play').classList.toggle('pen', isPen(mode));
   if (mode === 'fast') { G.rounds = 1e9; show('play'); startClock($('clock'), 45000, finishFast); }
   else { show('play'); startClock($('clock')); }
@@ -1141,7 +1171,7 @@ function afterAnswer(ok, guess, tapped){
   if (G.curW) noteWord(G.curW, ok);
   const fast = G.mode === 'fast', retry = !!G.retry, thought = performance.now() - G.qStart >= 3000;
   if (guess) { // too quick to have read it: stop, explain, then ask the same question again
-    G.streak = 0; G.prevWrong = true; G.retry = true; sMiss(); logGuess();
+    G.streak = 0; G.prevWrong = true; G.retry = true; G.gcount++; sMiss(); logGuess();
     $('msg').textContent = 'רגע, לא ממהרים 🐢';
     setTimeout(() => thinkCard(tapped), 1100); return;
   }
@@ -1207,7 +1237,7 @@ function finishQuiz(){
   const ms = stopClock(), r = state.records, std = G.rounds === STD_ROUNDS, prevBest = r.bestScore, perfect = G.goals === G.rounds, gi = Math.floor(G.goals);
   r.goals += gi; r.matches++; if (std) r.bestScore = Math.max(r.bestScore, gi); r.bestStreak = Math.max(r.bestStreak, G.bestStreak);
   const timeNote = perfect ? recordTime(G.mode, ms, G.rounds) : ''; // time records only count for a perfect match
-  const qr = questCheck(G.mode, { ratio: G.goals / G.rounds }), card = qr.card, newBest = std && gi > prevBest && gi > 0;
+  const qr = questCheck(G.mode, { ratio: G.goals / G.rounds, guesses: G.gcount }), card = qr.card, newBest = std && gi > prevBest && gi > 0;
   showResult({
     ball: G.goals >= 8 ? '🏆' : G.goals >= 5 ? '🥈' : '⚽',
     title: newBest ? 'שיא חדש! 🎉' : G.goals >= 8 ? 'כוכבים!' : G.goals >= 5 ? 'כל הכבוד!' : 'ממשיכים להתאמן!',
@@ -1257,7 +1287,7 @@ function endCatch(win){
     const timeNote = recordTime(C.mode, ms, C.goal), qr = questCheck(C.mode, { lives: C.lives }), card = qr.card;
     showResult({ ball: '🏆', title: 'תפסתם הכל!', text: `נשארו לכם ${C.lives} לבבות. כל הכבוד!`, ms, timeNote, card, celebrate: true, quest: qr.msg });
   } else {
-    sMiss(); showResult({ ball: '😅', title: 'השוער התעייף', text: `תפסתם ${C.score} מתוך ${C.goal}. נסו שוב!`, ms, timeNote: '', card: null, celebrate: false, quest: questCheck(C.mode, { lives: 0 }).msg });
+    sMiss(); showResult({ ball: '😅', title: 'השוער התעייף', text: `תפסתם ${C.score} מתוך ${C.goal}. נסו שוב!`, ms, timeNote: '', card: null, celebrate: false, quest: questCheck(C.mode, { lives: 0, lost: true }).msg });
   }
 }
 function catchLoop(now){
