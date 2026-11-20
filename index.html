@@ -42,6 +42,7 @@ input,select,textarea{font-size:16px;font-family:inherit;touch-action:manipulati
   overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;
 }
 .screen.on{display:flex}
+#result>*,#home>*{flex-shrink:0} /* on a short phone the screen scrolls; never squash the text boxes into the buttons */
 h1{font-family:'Fredoka','Heebo',sans-serif;font-weight:700;margin:6px 0;text-align:center;font-size:34px;text-shadow:0 3px 0 rgba(0,0,0,.35)}
 h2{margin:10px 0;font-size:22px}
 .sub{text-align:center;opacity:.9;margin:0 0 14px}
