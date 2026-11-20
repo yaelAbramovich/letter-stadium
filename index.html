@@ -1619,7 +1619,7 @@ function startWSearch(){
   WS = { words: words.map(w => ({ w, up: w.word.toUpperCase(), found: false })), grid: pl.grid, mist: 0, found: 0, sel: [], anchor: null, down: false };
   const lst = $('wsList'); lst.textContent = '';
   WS.words.forEach(x => {
-    const b = document.createElement('button'); b.className = 'wsc'; b.appendChild(picNode(x.w)); b.appendChild(mk('span', '', x.w.word));
+    const b = document.createElement('button'); b.className = 'wsc'; b.appendChild(picNode(x.w)); b.appendChild(mk('span', '', x.up)); // same capital letters as the grid
     b.onclick = () => speak(x.w.word); x.el = b; lst.appendChild(b);
   });
   const g = $('wsGrid'); g.textContent = '';
@@ -1652,14 +1652,15 @@ function wsCheck(cells){
   const hit = WS.words.find(x => !x.found && (x.up === str || x.up === rev));
   if (hit) {
     hit.found = true; WS.found++; cells.forEach(c => c.classList.add('fnd')); hit.el.classList.add('done'); $('wsLeft').textContent = WS.found + '/5';
-    noteWord(hit.w.word, true); sGoal(); speak(hit.w.word); wsPop(hit.w, WS.found === 5);
+    noteWord(hit.w.word, true); sGoal(); wsPop(hit.w, WS.found === 5);
+    setTimeout(() => speak(hit.w.word), 350); // spoken after the pop sound; iOS can drop speech started in the same instant
   } else if (!WS.words.some(x => x.found && (x.up === str || x.up === rev))) { // an already found word is ignored, anything else is a mistake
     WS.mist++; sMiss(); cells.forEach(c => c.classList.add('shake')); setTimeout(() => cells.forEach(c => c.classList.remove('shake')), 500);
   }
 }
 let wsPopT = 0, wsPopLast = false;
 function wsPop(w, last){ // the picture pops up big; the stopwatch waits meanwhile
-  const box = $('wsPop'); box.textContent = ''; const d = mk('div', 'wspop'); d.appendChild(picNode(w, 'div', 'pe')); d.appendChild(mk('b', '', w.word)); box.appendChild(d);
+  const box = $('wsPop'); box.textContent = ''; const d = mk('div', 'wspop'); d.appendChild(picNode(w, 'div', 'pe')); d.appendChild(mk('b', '', w.word.toUpperCase())); box.appendChild(d);
   box.classList.add('on'); clockHold(); wsPopLast = last; clearTimeout(wsPopT); wsPopT = setTimeout(closeWsPop, 2300);
 }
 function closeWsPop(quiet){
@@ -1668,6 +1669,7 @@ function closeWsPop(quiet){
   if (wsPopLast) { wsPopLast = false; finishFind('wsearch', WS.mist, 'מצאתם את כל המילים!'); }
 }
 $('wsPop').onclick = () => closeWsPop();
+$('wsPop').addEventListener('click', () => { if (WS) { const f = WS.words.filter(x => x.found); if (f.length) speak(f[f.length - 1].w.word); } }, true); // tapping the big picture says the word again
 
 /* ---------- parents ---------- */
 let gateAns = 0;
