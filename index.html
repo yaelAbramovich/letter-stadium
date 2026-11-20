@@ -222,6 +222,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 .wspop{background:#fff;color:var(--ink);border-radius:28px;padding:18px 24px;text-align:center;animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
 .wspop img{width:min(60vw,240px);height:min(60vw,240px);object-fit:contain}.wspop .pe{font-size:min(40vw,170px);line-height:1.1}
 .wspop b{display:block;font-family:'Fredoka',sans-serif;font-size:48px}
+.qres{font-size:17px;white-space:pre-line;background:rgba(0,0,0,.28);border-radius:16px;padding:8px 12px;margin:6px 0;line-height:1.5}.qres:empty{display:none}
 .qroute{font-weight:900;font-size:13px;margin-top:4px}
 .qprog{display:block}.qbar{height:8px;border-radius:6px;background:#dfe6e1;margin:4px 0}.qbar i{display:block;height:100%;border-radius:6px;background:#2ee66b}
 .qrow.done{background:#c9f5d6;box-shadow:0 3px 0 #86d6a0}
@@ -420,7 +421,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   <div class="stat" style="margin:0 0 6px"><b id="resTime">0.0s</b><span id="resLbl">הזמן שלכם</span></div>
   <div class="rec" id="resRec"></div>
   <button class="say" id="resSay" hidden></button>
-  <div class="rec" id="resQuest" style="font-size:17px;white-space:pre-line"></div>
+  <div class="rec qres" id="resQuest"></div>
   <div id="resCard"></div>
   <div class="cnt" id="resCount"><span>כמה סיבובים במשחק הבא?</span><div id="resCntBtns"></div></div>
   <button class="btn green" id="again">שחקו שוב</button>
@@ -487,6 +488,12 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
     <h2>🎯 אתגרי הקלף</h2>
     <p style="margin:0 0 8px;font-size:13px;opacity:.85">לכל קלף יש 3 דרכים (שלושה אתגרים, אימון, בונוס). הראשונה שמסתיימת זוכה בקלף. אפשר להגריל דרכים חדשות לאותו קלף.</p>
     <button class="btn small" id="rerollQuest">🎲 הגרלת אתגרים חדשים</button>
+  </div>
+  <div class="panel">
+    <h2>📋 יומן אתגרים</h2>
+    <p style="margin:0 0 6px;font-size:13px;opacity:.85">מה כל משחק דיווח לאתגרים (20 האחרונים). לבדיקה אם משהו לא מסומן.</p>
+    <pre id="qlogTxt" style="white-space:pre-wrap;direction:ltr;text-align:left;font-size:11px;margin:0 0 8px;max-height:220px;overflow:auto"></pre>
+    <button class="btn small danger" id="qlogClear">ניקוי היומן</button>
   </div>
   <div class="panel">
     <h2>🐢 ניחושים מהירים</h2>
@@ -702,7 +709,7 @@ const artOf = (w) => (w && (w.img || ART[String(w.word || '').toLowerCase()])) |
 
 /* ---------- storage ---------- */
 function emptyRecords(){ return { goals: 0, bestScore: 0, bestStreak: 0, matches: 0, times: {}, scores: {}, by: {} }; }
-function defaults(){ return { ver: 0, letters: ['A', 'B', 'N'], words: DEFAULT_WORDS.map(w => ({...w})), records: emptyRecords(), cards: [], players: [], me: '', letterInfo: {}, wstats: {}, rounds: 10, pbs: {}, guesses: {}, quest: null }; }
+function defaults(){ return { ver: 0, letters: ['A', 'B', 'N'], words: DEFAULT_WORDS.map(w => ({...w})), records: emptyRecords(), cards: [], players: [], me: '', letterInfo: {}, wstats: {}, rounds: 10, pbs: {}, guesses: {}, quest: null, qlog: [] }; }
 let state = defaults();
 function load(){
   try { const raw = localStorage.getItem(KEY); if (raw) { const v = sanitize(JSON.parse(raw)); if (v) state = v; } } catch (_) {}
@@ -785,7 +792,8 @@ function sanitize(d){
     quest = { card: d.quest.card, ch: d.quest.ch.map(x => ({ g: x.g, done: x.done === true })),
       pr: isObj(d.quest.pr) ? { n: num(d.quest.pr.n), L: num(d.quest.pr.L), V: num(d.quest.pr.V) } : null,
       bo: isObj(d.quest.bo) && ['perfect', 'newwords'].includes(d.quest.bo.type) ? { type: d.quest.bo.type, n: num(d.quest.bo.n) } : null };
-  return { ver: num(d.ver), letters, words, cards, players, me, letterInfo, wstats, rounds, pbs, guesses, quest,
+  const qlog = (Array.isArray(d.qlog) ? d.qlog : []).filter(isObj).slice(-20).map(e => ({ t: num(e.t), g: String(e.g || '').slice(0, 12), m: String(e.m || '').slice(0, 90), r: String(e.r || '').slice(0, 160) }));
+  return { ver: num(d.ver), letters, words, cards, players, me, letterInfo, wstats, rounds, pbs, guesses, quest, qlog,
     records: { goals: num(r.goals), bestScore: num(r.bestScore), bestStreak: num(r.bestStreak), matches: num(r.matches), times, scores, by } };
 }
 
@@ -986,6 +994,7 @@ const LETTER_GAMES = ['penalty', 'catch', 'memory', 'maze', 'hunt'], VOCAB_GAMES
 const QG = { penalty: { m: 'ratio' }, catch: { m: 'lives' }, memory: { m: 'moves' }, maze: { m: 'mist' }, hunt: { m: 'mist' },
   words: { m: 'ratio' }, vocab: { m: 'ratio' }, catchw: { m: 'lives' }, wmem: { m: 'moves' }, whunt: { m: 'mist' }, wsearch: { m: 'mist' }, flash: { m: 'ratio' } };
 // The goal gets harder with the card: tier 0 = common, 1 = rare, 2 = gold. m = what the game reports.
+const gotText = (game, m) => { const k = QG[game].m; return k === 'ratio' ? Math.round((m.ratio || 0) * 100) + '%' : k === 'lives' ? (m.lives || 0) + ' לבבות' : k === 'moves' ? (m.moves || 0) + ' ניסיונות' : (m.mist == null ? '?' : m.mist) + ' טעויות'; };
 function goalOf(game, tier, m = {}){
   const k = QG[game].m;
   if (k === 'ratio') { const need = [.6, .8, 1][tier]; return { ok: (m.ratio || 0) >= need - 1e-9, text: tier === 2 ? 'כל התשובות נכונות' : `לפחות ${need * 100}% תשובות נכונות` }; }
@@ -1019,6 +1028,11 @@ const gameInfo = (id) => GAMES.find(g => g.id === id) || { icon: '🎮', title: 
 const bonusInfo = (q, tier) => q.bo.type === 'perfect' ? { icon: '⭐', label: 'משחקים מושלמים', need: PERFECT_NEED[tier] } : { icon: '⭐', label: 'מילים חדשות', need: NEWWORDS_NEED[tier] };
 // Called when a game ends. Returns { card, msg }: the card is set when one of the three routes is completed.
 function questCheck(game, m = {}){
+  const res = questCheck1(game, m);
+  try { state.qlog.push({ t: Date.now(), g: game, m: JSON.stringify(m).slice(0, 90), r: (state.quest ? state.quest.card + ' ' + state.quest.ch.map(x => x.g + (x.done ? '✔' : '·')).join(',') : 'ללא') + ' → ' + (res.msg || '').replace(/\n/g, ' / ').slice(0, 100) }); if (state.qlog.length > 20) state.qlog.splice(0, state.qlog.length - 20); } catch (_) {}
+  return res;
+}
+function questCheck1(game, m){
   const q = ensureQuest(); if (!q) return { card: null, msg: '' };
   const target = cardOf(q), tier = target.rar, lines = [], known = !!QG[game], prNeed = PRACTICE_NEED[tier], bi = bonusInfo(q, tier);
   if (known) {
@@ -1026,7 +1040,7 @@ function questCheck(game, m = {}){
     if (i >= 0) {
       const goal = goalOf(game, tier, m);
       if (goal.ok) { q.ch[i].done = true; lines.push(`🎯 אתגר הושלם! (${q.ch.filter(x => x.done).length}/3)`); }
-      else lines.push('🎯 האתגר: ' + goal.text + ' – עוד לא הצלחתם, ננסה שוב!');
+      else lines.push('❌ האתגר לא הושג. צריך: ' + goal.text + '. אצלכם: ' + gotText(game, m) + '. ננסה שוב!');
     } else if (q.ch.some(x => x.g === game && x.done)) lines.push('🎯 האתגר הזה כבר הושלם.');
     if (!m.lost) { // route 2: practice counts every finished game, unless he was tapping at random
       if ((m.guesses || 0) <= 1) { q.pr.n++; q.pr[LETTER_GAMES.includes(game) ? 'L' : 'V']++; } else lines.push('🔁 המשחק לא נספר באימון (יותר מדי ניחושים מהירים)');
@@ -1220,6 +1234,11 @@ function thinkCard(tapped){
   clearInterval(thinkT); thinkT = setInterval(() => { n--; if (n > 0) ok.textContent = `הבנתי, עוד פעם (${n})`; else { clearInterval(thinkT); ok.disabled = false; ok.textContent = 'הבנתי, עוד פעם'; } }, 1000);
 }
 function closeThink(){ clearInterval(thinkT); $('think').classList.remove('on'); clockRelease(); }
+function renderQlog(){
+  const f = (t) => { const d = new Date(t); return d.getDate() + '/' + (d.getMonth() + 1) + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  $('qlogTxt').textContent = state.qlog.length ? state.qlog.slice().reverse().map(e => `${f(e.t)} ${e.g} ${e.m}\n   ${e.r}`).join('\n') : '(ריק)';
+}
+$('qlogClear').onclick = () => { state.qlog = []; save(); renderQlog(); };
 $('rerollQuest').onclick = () => { state.quest = null; ensureQuest(); save(); toast('אתגרים חדשים הוגרלו ✓'); };
 $('thinkOk').onclick = () => { closeThink(); if (G && !G.over) nextQ(); };
 
@@ -1695,7 +1714,7 @@ function renderCoverage(){
 }
 $('resetStats').onclick = () => { if (confirm('לאפס את הסטטיסטיקה של המילים?')) { state.wstats = {}; save(); renderCoverage(); toast('אופס'); } };
 function renderParents(){
-  renderVoices(); renderCoverage(); renderGuesses();
+  renderVoices(); renderCoverage(); renderGuesses(); renderQlog();
   const lp = $('letterPick'); lp.textContent = '';
   ALPHA.forEach(l => {
     const b = document.createElement('button'); b.textContent = l; b.className = state.letters.includes(l) ? 'sel' : '';
