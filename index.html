@@ -209,9 +209,8 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 .say b{display:block;font-family:'Fredoka',sans-serif;font-size:26px;direction:ltr}.say span{font-size:15px}
 .quest{background:#f6f8f4;color:var(--ink);border-radius:20px;padding:10px 12px;margin:0 0 8px;flex-shrink:0}
 .quest h2{margin:0 0 6px;font-size:17px}
-.qbody{display:flex;gap:10px;align-items:center}
-.qcard{flex:0 0 74px}.qcard svg{width:100%;height:auto;display:block}.qcard div{font-size:12px;font-weight:900;text-align:center;margin-top:2px}
-.qlist{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+.qhead{display:flex;gap:10px;align-items:center;margin-bottom:8px}.qht{flex:1;min-width:0}.qht h2{margin:0 0 2px;font-size:17px}.qht small{display:block;font-size:12px;opacity:.85;line-height:1.35}
+.qcard{flex:0 0 58px}.qcard svg{width:100%;height:auto;display:block}
 .qrow{display:flex;align-items:center;gap:8px;width:100%;text-align:right;border:0;border-radius:12px;background:#fff;color:var(--ink);padding:6px 10px;box-shadow:0 3px 0 #b8c4bd}
 .wsl{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:2px 0 8px;flex-shrink:0}
 .wsc{display:flex;align-items:center;gap:6px;background:#fff;color:var(--ink);border:0;border-radius:14px;padding:4px 12px 4px 6px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:18px;box-shadow:0 3px 0 #b8c4bd}
@@ -230,7 +229,15 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 .qrow .qi{font-size:20px}.qrow b{display:block;font-size:14px}.qrow small{display:block;font-size:12px;opacity:.85}
 .cdis{position:relative;border-radius:14px}.cdis svg{filter:grayscale(1) brightness(.72);opacity:.92}
 .cdis .clk{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);font-size:34px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.7))}
-.qcard .cdis .clk{font-size:22px}
+.qcard .cdis .clk{font-size:18px}
+.qcar{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:2px 0 8px}.qcar::-webkit-scrollbar{display:none}
+.qs{flex:0 0 84%;scroll-snap-align:center;background:#fff;border-radius:18px;padding:12px;text-align:center;box-shadow:0 3px 0 #b8c4bd;display:flex;flex-direction:column;align-items:center;gap:4px}
+.qs.done{background:#c9f5d6;box-shadow:0 3px 0 #86d6a0}
+.qlab{font-size:12px;font-weight:900;color:#1b6b45}.qbig{font-size:46px;line-height:1.1}.qtt{font-size:20px}.qkind{font-size:13px;font-weight:700;opacity:.85}.qgoal{font-size:15px;font-weight:900}
+.qok{font-weight:900;color:#1b6b45;margin-top:4px}
+.qplay{margin-top:6px;border:0;border-radius:14px;background:#2ee66b;color:var(--ink);font-weight:900;font-size:18px;padding:8px 26px;box-shadow:0 4px 0 #1aa84c}
+.qs .qbar{width:100%;margin:6px 0 2px}
+.qdots{display:flex;justify-content:center;gap:6px}.qdots i{width:8px;height:8px;border-radius:8px;background:#c5cec8;transition:width .2s}.qdots i.on{width:20px;background:#1b6b45}
 .cnext{box-shadow:0 0 0 3px var(--gold),0 0 18px 4px rgba(255,214,10,.7);animation:cglow 1.6s ease-in-out infinite}
 .cnext svg{filter:grayscale(.5) brightness(.85)}
 .cdis em{position:absolute;top:-8px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:900;font-style:normal;background:var(--gold);color:var(--ink);border-radius:8px;padding:1px 8px}
@@ -1069,23 +1076,40 @@ function renderQuest(){
   const box = $('quest'), q = ensureQuest(); box.textContent = '';
   if (!q) { box.hidden = true; return; }
   box.hidden = false;
-  const c = cardOf(q), tier = c.rar, h = mk('h2', '', `🎯 ${COLLECTIONS[c.col].icon} איך מרוויחים את הקלף הבא? (${RAR_NAME[tier]} ${'★'.repeat(tier + 1)})`);
-  const body = mk('div', 'qbody'), qc = mk('div', 'qcard'), list = mk('div', 'qlist');
+  const c = cardOf(q), tier = c.rar, bi = bonusInfo(q, tier), prNeed = PRACTICE_NEED[tier];
+  // header: the card he is playing for + a hint to swipe
+  const head = mk('div', 'qhead'), qc = mk('div', 'qcard'), ht = mk('div', 'qht');
   qc.innerHTML = lockedCard(c, false);
-  list.appendChild(mk('div', 'qroute', '🎯 דרך 1: שלושה אתגרים'));
-  q.ch.forEach(x => {
-    const gi = gameInfo(x.g), goal = goalOf(x.g, tier), b = document.createElement('button'); b.className = 'qrow' + (x.done ? ' done' : '');
-    b.append(mk('span', 'qi', x.done ? '✅' : gi.icon), (() => { const d = mk('div', ''); d.append(mk('b', '', gi.title + (LETTER_GAMES.includes(x.g) ? ' · אותיות' : ' · מילים')), mk('small', '', goal.text)); return d; })());
-    b.onclick = () => startGame(x.g); list.appendChild(b);
+  ht.append(mk('h2', '', `${COLLECTIONS[c.col].icon} הקלף הבא: ${c.name}`), mk('small', '', `${RAR_NAME[tier]} ${'★'.repeat(tier + 1)} · החליקו ימינה ושמאלה לראות את כל הדרכים לזכות בו 👉`));
+  head.append(qc, ht);
+  // the swipeable cards: 3 challenges, practice, bonus
+  const car = mk('div', 'qcar'), dots = mk('div', 'qdots'), slides = [];
+  const slide = (cls) => { const d = mk('div', 'qs' + (cls ? ' ' + cls : '')); car.appendChild(d); slides.push(d); return d; };
+  const goList = () => { const g = $('gList'); g && g.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  q.ch.forEach((x, i) => {
+    const gi = gameInfo(x.g), goal = goalOf(x.g, tier), d = slide(x.done ? 'done' : '');
+    d.append(mk('div', 'qlab', `🎯 דרך 1 · אתגר ${i + 1} מתוך 3`), mk('div', 'qbig', x.done ? '✅' : gi.icon), mk('b', 'qtt', gi.title),
+      mk('div', 'qkind', LETTER_GAMES.includes(x.g) ? '🔤 משחק אותיות' : '📖 משחק מילים'), mk('div', 'qgoal', goal.text));
+    if (x.done) d.appendChild(mk('div', 'qok', 'הושלם! כל הכבוד'));
+    else { const b = mk('button', 'qplay', 'שחקו ▶'); b.onclick = () => startGame(x.g); d.appendChild(b); }
   });
-  const bar = (n, need, label, hint) => { const d = mk('div', 'qrow qprog'), t = mk('div', ''), tr = mk('div', 'qbar'), f = mk('i', ''); f.style.width = Math.min(100, n / need * 100) + '%'; tr.appendChild(f);
-    t.append(mk('b', '', label + ' · ' + Math.min(n, need) + '/' + need), tr); if (hint) t.appendChild(mk('small', '', hint)); d.appendChild(t); return d; };
-  const bi = bonusInfo(q, tier), prNeed = PRACTICE_NEED[tier];
-  list.appendChild(mk('div', 'qroute', '🔁 דרך 2: אימון – משחקים כמה שרוצים'));
-  list.appendChild(bar(q.pr.n, prNeed, `סיימו ${prNeed} משחקים`, `🔤 אותיות ${q.pr.L ? '✅' : '⬜'} · 📖 מילים ${q.pr.V ? '✅' : '⬜'} (צריך משחק אחד מכל סוג)`));
-  list.appendChild(mk('div', 'qroute', '⭐ דרך 3: בונוס'));
-  list.appendChild(bar(q.bo.n, bi.need, bi.label, q.bo.type === 'perfect' ? 'בלי אף טעות' : 'מילים שעוד לא פגשתם'));
-  body.append(qc, list); box.append(h, body);
+  const bar = (n, need) => { const tr = mk('div', 'qbar'), f = mk('i', ''); f.style.width = Math.min(100, n / need * 100) + '%'; tr.appendChild(f); return tr; };
+  const pr = slide();
+  pr.append(mk('div', 'qlab', '🔁 דרך 2 · אימון'), mk('div', 'qbig', '🔁'), mk('b', 'qtt', `סיימו ${prNeed} משחקים`), bar(q.pr.n, prNeed), mk('div', 'qgoal', `${Math.min(q.pr.n, prNeed)} מתוך ${prNeed}`),
+    mk('div', 'qkind', `🔤 אותיות ${q.pr.L ? '✅' : '⬜'} · 📖 מילים ${q.pr.V ? '✅' : '⬜'} (צריך משחק אחד מכל סוג)`));
+  const pb = mk('button', 'qplay', 'לבחירת משחק ▼'); pb.onclick = goList; pr.appendChild(pb);
+  const bo = slide();
+  bo.append(mk('div', 'qlab', '⭐ דרך 3 · בונוס'), mk('div', 'qbig', q.bo.type === 'perfect' ? '🎯' : '🆕'), mk('b', 'qtt', bi.label), bar(q.bo.n, bi.need),
+    mk('div', 'qgoal', `${Math.min(q.bo.n, bi.need)} מתוך ${bi.need}`), mk('div', 'qkind', q.bo.type === 'perfect' ? 'משחק בלי אף טעות' : 'מילים שעוד לא פגשתם'));
+  const bb = mk('button', 'qplay', 'לבחירת משחק ▼'); bb.onclick = goList; bo.appendChild(bb);
+  slides.forEach((sl, i) => { const dt = mk('i', ''); dt.onclick = () => sl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); dots.appendChild(dt); });
+  const mark = () => { const r = car.getBoundingClientRect(), mid = r.left + r.width / 2; let best = 0, bd = 1e9;
+    slides.forEach((sl, i) => { const b = sl.getBoundingClientRect(), d = Math.abs(b.left + b.width / 2 - mid); if (d < bd) { bd = d; best = i; } });
+    [...dots.children].forEach((dt, i) => dt.classList.toggle('on', i === best)); };
+  let raf = 0; car.addEventListener('scroll', () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(mark); }, { passive: true });
+  box.append(head, car, dots);
+  const start = Math.max(0, q.ch.findIndex(x => !x.done)); // open on the first challenge that is not done yet
+  setTimeout(() => { if (slides[start]) slides[start].scrollIntoView({ inline: 'center', block: 'nearest' }); mark(); }, 0);
 }
 function showResult({ ball, title, text, ms, score, scoreLbl, timeNote, card, celebrate, quest }){
   $('resBall').textContent = ball; $('resTitle').textContent = title; $('resText').textContent = text;
