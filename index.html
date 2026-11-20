@@ -212,6 +212,16 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 .qcard{flex:0 0 74px}.qcard svg{width:100%;height:auto;display:block}.qcard div{font-size:12px;font-weight:900;text-align:center;margin-top:2px}
 .qlist{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
 .qrow{display:flex;align-items:center;gap:8px;width:100%;text-align:right;border:0;border-radius:12px;background:#fff;color:var(--ink);padding:6px 10px;box-shadow:0 3px 0 #b8c4bd}
+.wsl{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:2px 0 8px;flex-shrink:0}
+.wsc{display:flex;align-items:center;gap:6px;background:#fff;color:var(--ink);border:0;border-radius:14px;padding:4px 12px 4px 6px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:18px;box-shadow:0 3px 0 #b8c4bd}
+.wsc img{height:34px;width:34px;object-fit:contain;border-radius:6px}.wsc .pe{font-size:28px;line-height:1}
+.wsc.done{background:var(--ok);box-shadow:0 3px 0 #1aa84c}
+.wsg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;direction:ltr;touch-action:none;-webkit-user-select:none;user-select:none;flex-shrink:0}
+.wsg div{aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:#fff;color:var(--ink);border-radius:10px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:24px}
+.wsg .sel{background:var(--gold)}.wsg .fnd{background:var(--ok)}
+.wspop{background:#fff;color:var(--ink);border-radius:28px;padding:18px 24px;text-align:center;animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+.wspop img{width:min(60vw,240px);height:min(60vw,240px);object-fit:contain}.wspop .pe{font-size:min(40vw,170px);line-height:1.1}
+.wspop b{display:block;font-family:'Fredoka',sans-serif;font-size:48px}
 .qroute{font-weight:900;font-size:13px;margin-top:4px}
 .qprog{display:block}.qbar{height:8px;border-radius:6px;background:#dfe6e1;margin:4px 0}.qbar i{display:block;height:100%;border-radius:6px;background:#2ee66b}
 .qrow.done{background:#c9f5d6;box-shadow:0 3px 0 #86d6a0}
@@ -353,6 +363,17 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   </div>
   <div class="hud" style="justify-content:center;gap:10px"><span>מצאו את:</span><span class="tg" id="whTarget">?</span><button id="whSay" style="border:0;border-radius:50%;width:42px;height:42px;font-size:20px">🔊</button></div>
   <div class="hgrid" id="whGrid"></div>
+</section>
+
+<!-- WORD SEARCH -->
+<section id="wsearch" class="screen">
+  <div class="top">
+    <button class="btn ghost" data-home>✖ יציאה</button>
+    <div class="clock" id="wsClock">0.0s</div>
+    <div class="scoreboard" id="wsLeft">0/5</div>
+  </div>
+  <div class="wsl" id="wsList"></div>
+  <div class="wsg" id="wsGrid"></div>
 </section>
 
 <!-- MAZE -->
@@ -510,6 +531,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   <p style="margin:6px 0 12px">הסתכלו, הקשיבו, ונסו שוב לאט – בלי לנחש. 💪</p>
   <button class="btn green" id="thinkOk" disabled>הבנתי, עוד פעם</button>
 </div></div>
+<div class="modal" id="wsPop"></div>
 <div class="mega" id="mega"></div>
 <div class="toast" id="toast"></div>
 
@@ -519,7 +541,7 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 const $ = (id) => document.getElementById(id);
 const KEY = 'letterStadium.v1';
 const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-const MODES = ['penalty', 'fast', 'memory', 'maze', 'hunt', 'catch', 'catchw', 'wmem', 'whunt', 'vocab', 'letters', 'words'];
+const MODES = ['penalty', 'fast', 'memory', 'maze', 'hunt', 'catch', 'catchw', 'wmem', 'whunt', 'wsearch', 'vocab', 'letters', 'words'];
 const DEFAULT_WORDS = [
   ['apple','🍎'],['ball','⚽'],['cat','🐱'],['dog','🐶'],['egg','🥚'],['fish','🐟'],['goat','🐐'],['hat','🎩'],
   ['ice cream','🍦'],['juice','🧃'],['kite','🪁'],['lion','🦁'],['moon','🌙'],['nose','👃'],['orange','🍊'],
@@ -894,10 +916,10 @@ function tone(freqs, dur = .12, type = 'triangle'){
 const sGoal = () => tone([523, 659, 784, 1046]), sMiss = () => tone([220, 165], .2, 'sawtooth'), sPop = () => tone([880], .08);
 
 /* ---------- navigation / home ---------- */
-let G = null, C = null, M = null, H = null, Z = null, FL = null, WM = null, WH = null, lastMode = 'penalty';
+let G = null, C = null, M = null, H = null, Z = null, FL = null, WM = null, WH = null, WS = null, lastMode = 'penalty';
 const esc = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function goHome(){
-  save(); closeThink(); stopClock(); if (C) C.run = false; G = null; M = null; H = null; Z = null; FL = null; WM = null; WH = null;
+  save(); closeThink(); stopClock(); if (C) C.run = false; G = null; M = null; H = null; Z = null; FL = null; WM = null; WH = null; WS = null; closeWsPop(true);
   try { speechSynthesis.cancel(); } catch (_) {}
   refreshHome(); show('home');
 }
@@ -912,6 +934,7 @@ const GAMES = [
   { id: 'catchw', icon: '📸', title: 'תופסים תמונות', desc: 'שומעים מילה באנגלית ותופסים את התמונה שלה כשהיא נופלת. אין צורך לקרוא!', rec: 'time' },
   { id: 'wmem', icon: '🃏', title: 'זוגות תמונה ומילה', desc: 'הופכים קלפים ומוצאים זוגות: תמונה והמילה שלה באנגלית. המילה נשמעת כשהופכים!', rec: 'time' },
   { id: 'whunt', icon: '🔍', title: 'ציד התמונות', desc: 'שומעים מילה ומוצאים את התמונה שלה ברשת של תמונות. 6 מילים, כמה שיותר מהר.', rec: 'time' },
+  { id: 'wsearch', icon: '🔠', title: 'תפזורת', desc: 'מוצאים 5 מילים חבויות ברשת אותיות. ליד כל מילה יש תמונה. כשמוצאים – המילה נשמעת והתמונה קופצת!', rec: 'time' },
   { id: 'flash', icon: '🗂️', title: 'כרטיסיות מילים', desc: 'שומעים מילה, מקישים כדי לראות את התמונה, ומסמנים ✓ אם ידעתם או ✗ אם לא.', rec: 'none' },
   { id: 'vocab', icon: '🔤', title: 'מה פירוש המילה?', desc: 'רואים ושומעים מילה באנגלית ובוחרים את התרגום הנכון בעברית.', rec: 'time' },
   { id: 'words', icon: '🖼️', title: 'האות הפותחת', desc: 'רואים תמונה ובוחרים באיזו אות מתחילה המילה. כיף לשחק יחד!', rec: 'time' }
@@ -952,16 +975,16 @@ function renderResCount(){
 function startGame(mode){
   ensureAudio(); lastMode = mode;
   if (state.letters.length < 2) { toast('יש לבחור לפחות 2 אותיות באזור ההורים'); return; }
-  if (mode === 'catch') startCatch('letter'); else if (mode === 'catchw') startCatch('word'); else if (mode === 'wmem') startWMem(); else if (mode === 'whunt') startWHunt(); else if (mode === 'memory') startMemory(); else if (mode === 'hunt') startHunt(); else if (mode === 'maze') startMaze(); else if (mode === 'flash') startFlash(); else startQuiz(mode);
+  if (mode === 'catch') startCatch('letter'); else if (mode === 'catchw') startCatch('word'); else if (mode === 'wmem') startWMem(); else if (mode === 'whunt') startWHunt(); else if (mode === 'wsearch') startWSearch(); else if (mode === 'memory') startMemory(); else if (mode === 'hunt') startHunt(); else if (mode === 'maze') startMaze(); else if (mode === 'flash') startFlash(); else startQuiz(mode);
 }
 
 /* ---------- result + card rewards ---------- */
 const colHave = (i) => COLLECTIONS[i].cards.filter(c => state.cards.includes(c.id)).length;
 const activeCol = () => COLLECTIONS.findIndex((col, i) => colHave(i) < col.cards.length); // -1 when everything is collected
 /* ---------- card challenges: each card needs 3 challenges (one letters, one words, one of either) ---------- */
-const LETTER_GAMES = ['penalty', 'catch', 'memory', 'maze', 'hunt'], VOCAB_GAMES = ['words', 'vocab', 'catchw', 'wmem', 'whunt', 'flash'];
+const LETTER_GAMES = ['penalty', 'catch', 'memory', 'maze', 'hunt'], VOCAB_GAMES = ['words', 'vocab', 'catchw', 'wmem', 'whunt', 'wsearch', 'flash'];
 const QG = { penalty: { m: 'ratio' }, catch: { m: 'lives' }, memory: { m: 'moves' }, maze: { m: 'mist' }, hunt: { m: 'mist' },
-  words: { m: 'ratio' }, vocab: { m: 'ratio' }, catchw: { m: 'lives' }, wmem: { m: 'moves' }, whunt: { m: 'mist' }, flash: { m: 'ratio' } };
+  words: { m: 'ratio' }, vocab: { m: 'ratio' }, catchw: { m: 'lives' }, wmem: { m: 'moves' }, whunt: { m: 'mist' }, wsearch: { m: 'mist' }, flash: { m: 'ratio' } };
 // The goal gets harder with the card: tier 0 = common, 1 = rare, 2 = gold. m = what the game reports.
 function goalOf(game, tier, m = {}){
   const k = QG[game].m;
@@ -1571,6 +1594,80 @@ function whNext(){
   $('whTarget').innerHTML = `<span style="color:#e53935">${esc(w[0])}</span>${esc(w.slice(1))}`; $('whTarget').style.fontSize = w.length > 8 ? '18px' : '28px';
   speak(w);
 }
+
+/* ---------- word search: 5 picture words hidden in a grid (left to right / top to bottom) ---------- */
+const WSN = 7;
+function wsPlace(words){ // returns { grid, spots } or null; words may cross where the letters agree
+  const grid = Array.from({ length: WSN }, () => Array(WSN).fill('')), spots = [];
+  for (const w of words.slice().sort((a, b) => b.length - a.length)) {
+    let ok = false;
+    for (let t = 0; t < 300 && !ok; t++) {
+      const horiz = Math.random() < .5, r = Math.random() * (horiz ? WSN : WSN - w.length + 1) | 0, c = Math.random() * (horiz ? WSN - w.length + 1 : WSN) | 0;
+      const cells = [...w].map((_, i) => horiz ? [r, c + i] : [r + i, c]);
+      if (cells.every(([a, b], i) => !grid[a][b] || grid[a][b] === w[i])) { cells.forEach(([a, b], i) => { grid[a][b] = w[i]; }); spots.push({ w, cells }); ok = true; }
+    }
+    if (!ok) return null;
+  }
+  for (let r = 0; r < WSN; r++) for (let c = 0; c < WSN; c++) if (!grid[r][c]) grid[r][c] = ALPHA[Math.random() * 26 | 0];
+  return { grid, spots };
+}
+function startWSearch(){
+  const list = picWords().filter(w => /^[A-Za-z]{3,6}$/.test(w.word)), words = pickPics(smartOrder(list), 5);
+  if (words.length < 5) { toast('צריך לפחות 5 מילים עם תמונה'); return; }
+  let pl = null; for (let t = 0; t < 20 && !pl; t++) pl = wsPlace(words.map(w => w.word.toUpperCase()));
+  if (!pl) { toast('לא הצלחנו לבנות תפזורת, נסו שוב'); return; }
+  WS = { words: words.map(w => ({ w, up: w.word.toUpperCase(), found: false })), grid: pl.grid, mist: 0, found: 0, sel: [], anchor: null, down: false };
+  const lst = $('wsList'); lst.textContent = '';
+  WS.words.forEach(x => {
+    const b = document.createElement('button'); b.className = 'wsc'; b.appendChild(picNode(x.w)); b.appendChild(mk('span', '', x.w.word));
+    b.onclick = () => speak(x.w.word); x.el = b; lst.appendChild(b);
+  });
+  const g = $('wsGrid'); g.textContent = '';
+  for (let r = 0; r < WSN; r++) for (let c = 0; c < WSN; c++) { const d = document.createElement('div'); d.dataset.r = r; d.dataset.c = c; d.textContent = pl.grid[r][c]; g.appendChild(d); }
+  g.onpointerdown = (e) => { const t = wsCell(e); if (!t) return; WS.down = true; WS.start = t; wsSelect(t, t); try { g.setPointerCapture(e.pointerId); } catch (_) {} };
+  g.onpointermove = (e) => { if (!WS || !WS.down) return; const t = wsCell(e); if (t) wsSelect(WS.start, t); };
+  g.onpointerup = g.onpointercancel = (e) => { if (!WS || !WS.down) return; WS.down = false; wsRelease(wsCell(e) || WS.start); };
+  $('wsLeft').textContent = '0/5'; show('wsearch'); startClock($('wsClock'));
+}
+function wsCell(e){ const el = document.elementFromPoint(e.clientX, e.clientY); return el && el.parentNode === $('wsGrid') ? el : null; }
+function wsLine(a, b){ // cells on the straight line from a to b (horizontal or vertical, whichever is closer)
+  const r0 = +a.dataset.r, c0 = +a.dataset.c, r1 = +b.dataset.r, c1 = +b.dataset.c, horiz = Math.abs(c1 - c0) >= Math.abs(r1 - r0), out = [];
+  const n = horiz ? Math.abs(c1 - c0) : Math.abs(r1 - r0), dr = horiz ? 0 : Math.sign(r1 - r0), dc = horiz ? Math.sign(c1 - c0) : 0;
+  for (let i = 0; i <= n; i++) out.push($('wsGrid').children[(r0 + dr * i) * WSN + c0 + dc * i]);
+  return out;
+}
+function wsSelect(a, b){ WS.sel.forEach(el => el.classList.remove('sel')); WS.sel = wsLine(a, b); WS.sel.forEach(el => el.classList.add('sel')); }
+function wsRelease(end){
+  const sel = WS.sel.slice(); WS.sel.forEach(el => el.classList.remove('sel')); WS.sel = [];
+  if (sel.length === 1) { // tap, tap: first and last letter
+    if (!WS.anchor) { WS.anchor = sel[0]; sel[0].classList.add('sel'); return; }
+    const a = WS.anchor; WS.anchor.classList.remove('sel'); WS.anchor = null; if (a === sel[0]) return; return wsCheck(wsLine(a, sel[0]));
+  }
+  if (WS.anchor) { WS.anchor.classList.remove('sel'); WS.anchor = null; }
+  wsCheck(sel);
+}
+function wsCheck(cells){
+  if (cells.length < 2) return;
+  const str = cells.map(c => c.textContent).join(''), rev = [...str].reverse().join('');
+  const hit = WS.words.find(x => !x.found && (x.up === str || x.up === rev));
+  if (hit) {
+    hit.found = true; WS.found++; cells.forEach(c => c.classList.add('fnd')); hit.el.classList.add('done'); $('wsLeft').textContent = WS.found + '/5';
+    noteWord(hit.w.word, true); sGoal(); speak(hit.w.word); wsPop(hit.w, WS.found === 5);
+  } else if (!WS.words.some(x => x.found && (x.up === str || x.up === rev))) { // an already found word is ignored, anything else is a mistake
+    WS.mist++; sMiss(); cells.forEach(c => c.classList.add('shake')); setTimeout(() => cells.forEach(c => c.classList.remove('shake')), 500);
+  }
+}
+let wsPopT = 0, wsPopLast = false;
+function wsPop(w, last){ // the picture pops up big; the stopwatch waits meanwhile
+  const box = $('wsPop'); box.textContent = ''; const d = mk('div', 'wspop'); d.appendChild(picNode(w, 'div', 'pe')); d.appendChild(mk('b', '', w.word)); box.appendChild(d);
+  box.classList.add('on'); clockHold(); wsPopLast = last; clearTimeout(wsPopT); wsPopT = setTimeout(closeWsPop, 2300);
+}
+function closeWsPop(quiet){
+  clearTimeout(wsPopT); const box = $('wsPop'); if (!box.classList.contains('on')) return; box.classList.remove('on'); clockRelease();
+  if (quiet === true || !WS) { wsPopLast = false; return; }
+  if (wsPopLast) { wsPopLast = false; finishFind('wsearch', WS.mist, 'מצאתם את כל המילים!'); }
+}
+$('wsPop').onclick = () => closeWsPop();
 
 /* ---------- parents ---------- */
 let gateAns = 0;
