@@ -228,6 +228,13 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
 .qprog{display:block}.qbar{height:8px;border-radius:6px;background:#dfe6e1;margin:4px 0}.qbar i{display:block;height:100%;border-radius:6px;background:#2ee66b}
 .qrow.done{background:#c9f5d6;box-shadow:0 3px 0 #86d6a0}
 .qrow .qi{font-size:20px}.qrow b{display:block;font-size:14px}.qrow small{display:block;font-size:12px;opacity:.85}
+.cdis{position:relative;border-radius:14px}.cdis svg{filter:grayscale(1) brightness(.72);opacity:.92}
+.cdis .clk{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);font-size:34px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.7))}
+.qcard .cdis .clk{font-size:22px}
+.cnext{box-shadow:0 0 0 3px var(--gold),0 0 18px 4px rgba(255,214,10,.7);animation:cglow 1.6s ease-in-out infinite}
+.cnext svg{filter:grayscale(.5) brightness(.85)}
+.cdis em{position:absolute;top:-8px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:900;font-style:normal;background:var(--gold);color:var(--ink);border-radius:8px;padding:1px 8px}
+@keyframes cglow{50%{box-shadow:0 0 0 3px var(--gold),0 0 28px 8px rgba(255,214,10,.95)}}
 .ctabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;flex-shrink:0}
 .ctabs button{flex:0 0 auto;border:0;border-radius:14px;padding:8px 12px;font-weight:900;font-size:14px;background:rgba(255,255,255,.85);color:var(--ink);white-space:nowrap}
 .ctabs button.on{background:var(--gold);box-shadow:0 3px 0 #b39500}
@@ -383,7 +390,6 @@ input[type=text],input[type=number]{flex:1;min-width:0;border:0;border-radius:12
   <div class="top">
     <button class="btn ghost" data-home>✖ יציאה</button>
     <div class="clock" id="zClock">0.0s</div>
-    <div class="scoreboard" id="zMist">❌ 0</div>
   </div>
   <div class="hud" style="justify-content:center;gap:10px"><span>עקבו רק אחרי:</span><span class="tg" id="zTarget">A a</span><span>לשער 🥅</span></div>
   <div class="mgrid" id="zGrid"></div>
@@ -620,12 +626,15 @@ const COLLECTIONS = [
 ];
 COLLECTIONS.forEach((col, ci) => col.cards.forEach(c => { c.col = ci; }));
 const CARDS = COLLECTIONS.flatMap(col => col.cards);
+// A card he has not earned yet: the real card in grey with a lock, so he can see what he is playing for.
+const lockedCard = (c, next) => `<div class="cdis${next ? ' cnext' : ''}">${cardSVG(c, true)}<span class="clk">🔒</span>${next ? '<em>🎯 הקלף הבא</em>' : ''}</div>`;
 const RAR_COL = ['#aab4bb', '#4aa3ff', '#ffd60a'], RAR_NAME = ['רגיל', 'נדיר', 'זהב'];
 
+let cardUid = 0; // unique ids so the same card can be drawn in two places (gradients inside hidden screens fail otherwise)
 function cardFrame(c, art){
   const col = RAR_COL[c.rar], long = c.name.length > 14;
-  return `<svg viewBox="0 0 120 170"><defs><linearGradient id="g${c.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.rar === 2 ? '#fff3b0' : c.rar === 1 ? '#cfe8ff' : '#eef2f4'}"/><stop offset="1" stop-color="${col}"/></linearGradient></defs>
-  <rect x="2" y="2" width="116" height="166" rx="14" fill="url(#g${c.id})" stroke="${col}" stroke-width="4"/>
+  return `<svg viewBox="0 0 120 170"><defs><linearGradient id="g${c.uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.rar === 2 ? '#fff3b0' : c.rar === 1 ? '#cfe8ff' : '#eef2f4'}"/><stop offset="1" stop-color="${col}"/></linearGradient></defs>
+  <rect x="2" y="2" width="116" height="166" rx="14" fill="url(#g${c.uid})" stroke="${col}" stroke-width="4"/>
   <text x="60" y="18" text-anchor="middle" font-size="10" font-weight="900" fill="#0d2a1c" font-family="Heebo,sans-serif">${'★'.repeat(c.rar + 1)}</text>
   ${art}
   <rect x="6" y="142" width="108" height="24" rx="8" fill="#0d2a1c"/>
@@ -633,11 +642,12 @@ function cardFrame(c, art){
   <text x="60" y="164" text-anchor="middle" font-size="8" fill="${col}" font-family="Fredoka,Heebo,sans-serif">${c.flag} ${RAR_NAME[c.rar]}</text></svg>`;
 }
 function cardSVG(c, owned) {
+  c = Object.assign({}, c, { uid: c.id + '_' + (++cardUid) });
   if (!owned) return `<svg viewBox="0 0 120 170"><rect x="2" y="2" width="116" height="166" rx="14" fill="#2a4a3a" stroke="#4d6b5c" stroke-width="3"/><text x="60" y="100" text-anchor="middle" font-size="60" fill="#4d6b5c" font-family="Fredoka,sans-serif" font-weight="700">?</text></svg>`;
   if (c.kind === 'team') { // generic shield in the club colours with its short name (no real logos)
     const sh = 'M30 34 H90 V86 Q90 120 60 134 Q30 120 30 86 Z';
-    return cardFrame(c, `<defs><clipPath id="c${c.id}"><path d="${sh}"/></clipPath></defs>
-      <g clip-path="url(#c${c.id})"><rect x="30" y="34" width="60" height="100" fill="${c.c1}"/><rect x="40" y="34" width="10" height="100" fill="${c.c2}"/><rect x="70" y="34" width="10" height="100" fill="${c.c2}"/></g>
+    return cardFrame(c, `<defs><clipPath id="c${c.uid}"><path d="${sh}"/></clipPath></defs>
+      <g clip-path="url(#c${c.uid})"><rect x="30" y="34" width="60" height="100" fill="${c.c1}"/><rect x="40" y="34" width="10" height="100" fill="${c.c2}"/><rect x="70" y="34" width="10" height="100" fill="${c.c2}"/></g>
       <path d="${sh}" fill="none" stroke="#0d2a1c" stroke-width="3" stroke-linejoin="round"/>
       <rect x="36" y="72" width="48" height="26" rx="9" fill="rgba(255,255,255,.92)" stroke="#0d2a1c" stroke-width="1.5"/>
       <text x="60" y="91" text-anchor="middle" font-size="18" font-weight="700" fill="#0d2a1c" font-family="Fredoka,sans-serif">${c.ab}</text>
@@ -937,7 +947,7 @@ const GAMES = [
   { id: 'penalty', icon: '🥅', title: 'פנדלים', desc: 'שומעים שם של אות או מילה ובועטים לשער עם האות הנכונה. כמה שיותר מהר.', rec: 'time' },
   { id: 'fast', icon: '⏱️', title: 'מתקפה מהירה', desc: '45 שניות. כמה שערים תספיק להבקיע? אפשר לשבור שיא פעם אחר פעם!', rec: 'score' },
   { id: 'memory', icon: '👕', title: 'חולצות תאומות', desc: 'הופכים חולצות ומוצאים זוגות: אות גדולה ואות קטנה.', rec: 'time' },
-  { id: 'maze', icon: '🧩', title: 'מבוך אותיות', desc: 'מובילים את הכדור לשער, רק דרך האות הנכונה.', rec: 'time' },
+  { id: 'maze', icon: '🧩', title: 'מבוך אותיות', desc: 'מובילים את הכדור לשער, רק דרך האות הנכונה. צעד אחד לא נכון וחוזרים להתחלה!', rec: 'time' },
   { id: 'hunt', icon: '🔎', title: 'ציד האות', desc: 'מוצאים את כל האותיות והמילים שמתחילות באות המבוקשת.', rec: 'time' },
   { id: 'catch', icon: '🧤', title: 'תופסים כדורים', desc: 'מזיזים את הכפפה ותופסים רק את האות שנשמעת.', rec: 'time' },
   { id: 'catchw', icon: '📸', title: 'תופסים תמונות', desc: 'שומעים מילה באנגלית ותופסים את התמונה שלה כשהיא נופלת. אין צורך לקרוא!', rec: 'time' },
@@ -992,15 +1002,16 @@ const colHave = (i) => COLLECTIONS[i].cards.filter(c => state.cards.includes(c.i
 const activeCol = () => COLLECTIONS.findIndex((col, i) => colHave(i) < col.cards.length); // -1 when everything is collected
 /* ---------- card challenges: each card needs 3 challenges (one letters, one words, one of either) ---------- */
 const LETTER_GAMES = ['penalty', 'catch', 'memory', 'maze', 'hunt'], VOCAB_GAMES = ['words', 'vocab', 'catchw', 'wmem', 'whunt', 'wsearch', 'flash'];
-const QG = { penalty: { m: 'ratio' }, catch: { m: 'lives' }, memory: { m: 'moves' }, maze: { m: 'mist' }, hunt: { m: 'mist' },
+const QG = { penalty: { m: 'ratio' }, catch: { m: 'lives' }, memory: { m: 'moves' }, maze: { m: 'finish' }, hunt: { m: 'mist' },
   words: { m: 'ratio' }, vocab: { m: 'ratio' }, catchw: { m: 'lives' }, wmem: { m: 'moves' }, whunt: { m: 'mist' }, wsearch: { m: 'mist' }, flash: { m: 'ratio' } };
 // The goal gets harder with the card: tier 0 = common, 1 = rare, 2 = gold. m = what the game reports.
-const gotText = (game, m) => { const k = QG[game].m; return k === 'ratio' ? Math.round((m.ratio || 0) * 100) + '%' : k === 'lives' ? (m.lives || 0) + ' לבבות' : k === 'moves' ? (m.moves || 0) + ' ניסיונות' : (m.mist == null ? '?' : m.mist) + ' טעויות'; };
+const gotText = (game, m) => { const k = QG[game].m; return k === 'finish' ? 'לא הגעתם לשער' : k === 'ratio' ? Math.round((m.ratio || 0) * 100) + '%' : k === 'lives' ? (m.lives || 0) + ' לבבות' : k === 'moves' ? (m.moves || 0) + ' ניסיונות' : (m.mist == null ? '?' : m.mist) + ' טעויות'; };
 function goalOf(game, tier, m = {}){
   const k = QG[game].m;
   if (k === 'ratio') { const need = [.6, .8, 1][tier]; return { ok: (m.ratio || 0) >= need - 1e-9, text: tier === 2 ? 'כל התשובות נכונות' : `לפחות ${need * 100}% תשובות נכונות` }; }
   if (k === 'lives') { const need = [1, 2, 3][tier]; return { ok: (m.lives || 0) >= need, text: ['לתפוס הכל', 'לתפוס הכל ולהישאר עם 2 לבבות לפחות', 'לתפוס הכל בלי לאבד לב'][tier] }; }
   if (k === 'moves') { const p = m.pairs || 6, max = [p * 3, p * 2, p + 2][tier]; return { ok: (m.moves || 999) <= max, text: ['עד 3 ניסיונות לכל זוג', 'עד 2 ניסיונות לכל זוג', 'כמעט בלי טעויות'][tier] }; }
+  if (k === 'finish') return { ok: !m.lost && m.mist === 0, text: 'להגיע לשער' };
   const max = [4, 2, 0][tier]; return { ok: m.mist != null && m.mist <= max, text: ['עד 4 טעויות', 'עד 2 טעויות', 'בלי אף טעות'][tier] };
 }
 const pick1 = (a) => a[Math.random() * a.length | 0];
@@ -1060,7 +1071,7 @@ function renderQuest(){
   box.hidden = false;
   const c = cardOf(q), tier = c.rar, h = mk('h2', '', `🎯 ${COLLECTIONS[c.col].icon} איך מרוויחים את הקלף הבא? (${RAR_NAME[tier]} ${'★'.repeat(tier + 1)})`);
   const body = mk('div', 'qbody'), qc = mk('div', 'qcard'), list = mk('div', 'qlist');
-  qc.innerHTML = cardSVG(c, false);
+  qc.innerHTML = lockedCard(c, false);
   list.appendChild(mk('div', 'qroute', '🎯 דרך 1: שלושה אתגרים'));
   q.ch.forEach(x => {
     const gi = gameInfo(x.g), goal = goalOf(x.g, tier), b = document.createElement('button'); b.className = 'qrow' + (x.done ? ' done' : '');
@@ -1103,14 +1114,13 @@ $('toBook').onclick = () => { renderBook(); show('book'); };
 let viewCol = 0;
 function openCards(idx){ const ai = activeCol(); viewCol = idx != null ? idx : ai < 0 ? COLLECTIONS.length - 1 : ai; renderCards(); show('cards'); }
 function renderCards(){
-  const ai = activeCol(), last = ai < 0 ? COLLECTIONS.length - 1 : ai; // collections after `last` are still locked
-  if (viewCol > last) viewCol = last;
-  const col = COLLECTIONS[viewCol], have = colHave(viewCol), done = have === col.cards.length;
-  $('cardTabs').innerHTML = COLLECTIONS.map((c, i) => `<button data-c="${i}"${i === viewCol ? ' class="on"' : ''}${i > last ? ' disabled' : ''}>${i > last ? '🔒' : colHave(i) === c.cards.length ? '✅' : c.icon} ${c.title}</button>`).join('');
-  $('cardsSub').textContent = `אספתם ${have} מתוך ${col.cards.length} ${col.what}.` + (done ? '' : ' משחקים כדי לזכות בעוד!');
-  $('cardGrid').innerHTML = (done ? '<div class="cdone" style="grid-column:1/-1">🏆 האוסף שלם! 🏆</div>' : '') + col.cards.map(c => `<div>${cardSVG(c, state.cards.includes(c.id))}</div>`).join('');
+  const ai = activeCol(), last = ai < 0 ? COLLECTIONS.length - 1 : ai; // collections after `last` are still locked (but he can look at them)
+  const col = COLLECTIONS[viewCol], have = colHave(viewCol), done = have === col.cards.length, locked = viewCol > last, nextId = state.quest ? state.quest.card : '';
+  $('cardTabs').innerHTML = COLLECTIONS.map((c, i) => `<button data-c="${i}"${i === viewCol ? ' class="on"' : ''}>${i > last ? '🔒' : colHave(i) === c.cards.length ? '✅' : c.icon} ${c.title}</button>`).join('');
+  $('cardsSub').textContent = locked ? `🔒 האוסף הזה ייפתח אחרי שתסיימו את "${COLLECTIONS[viewCol - 1].title}". ככה הוא נראה:` : `אספתם ${have} מתוך ${col.cards.length} ${col.what}. הקלפים האפורים עוד מחכים לכם!`;
+  $('cardGrid').innerHTML = (done ? '<div class="cdone" style="grid-column:1/-1">🏆 האוסף שלם! 🏆</div>' : '') + col.cards.map(c => `<div>${state.cards.includes(c.id) ? cardSVG(c, true) : lockedCard(c, !locked && c.id === nextId)}</div>`).join('');
 }
-$('cardTabs').onclick = (e) => { const b = e.target.closest('button[data-c]'); if (b && !b.disabled) { viewCol = +b.dataset.c; renderCards(); } };
+$('cardTabs').onclick = (e) => { const b = e.target.closest('button[data-c]'); if (b) { viewCol = +b.dataset.c; renderCards(); } };
 // Big celebration when a whole collection is finished.
 let megaIv = 0;
 function megaCelebrate(ci){
@@ -1438,7 +1448,7 @@ function startMaze(){
   const cells = Array.from({ length: MR }, () => Array.from({ length: MC }, () => ({ l: rc(others[Math.random() * others.length | 0]), ok: false })));
   genPath().forEach(([r, c]) => { cells[r][c] = { l: rc(T), ok: true }; });
   Z = { T, cells, r: 0, c: 0, mist: 0, last: null, down: false };
-  $('zTarget').textContent = T + ' ' + T.toLowerCase(); $('zMist').textContent = '❌ 0';
+  $('zTarget').textContent = T + ' ' + T.toLowerCase();
   const g = $('zGrid'); g.textContent = '';
   for (let r = 0; r < MR; r++) for (let c = 0; c < MC; c++) {
     const d = document.createElement('div'); d.className = 'mt'; d.dataset.r = r; d.dataset.c = c; d.textContent = cells[r][c].l;
@@ -1450,18 +1460,23 @@ function startMaze(){
   g.onpointerup = g.onpointercancel = () => { if (Z) Z.down = false; };
   show('maze'); startClock($('zClock')); speakLetter(T);
 }
+function failMaze(){
+  const ms = stopClock(), qr = questCheck('maze', { lost: true });
+  sMiss(); showResult({ ball: '😅', title: 'אופס, יצאתם מהמסלול', text: 'צעד אחד לא נכון והכדור חוזר להתחלה. מנסים שוב?', ms, timeNote: '', card: null, celebrate: false, quest: qr.msg });
+}
 function mzTile(r, c){ return $('zGrid').children[r * MC + c]; }
 function mzHandle(e){ // works for taps and for dragging a finger along the path
   const el = document.elementFromPoint(e.clientX, e.clientY), t = el && el.closest && el.closest('.mt');
-  if (!t || t === Z.last) return; Z.last = t;
+  if (!t || t === Z.last || Z.over) return; Z.last = t;
   const r = +t.dataset.r, c = +t.dataset.c, dist = Math.abs(r - Z.r) + Math.abs(c - Z.c);
   if (dist !== 1) return; // only the neighbouring tiles can be entered
   if (Z.cells[r][c].ok) {
     const old = mzTile(Z.r, Z.c); old.className = 'mt vis' + (Z.r === MR - 1 && Z.c === MC - 1 ? ' zgoal' : ''); old.textContent = Z.cells[Z.r][Z.c].l;
     Z.r = r; Z.c = c; t.className = 'mt cur' + (r === MR - 1 && c === MC - 1 ? ' zgoal' : ''); t.textContent = '⚽'; sPop();
-    if (r === MR - 1 && c === MC - 1) { Z.down = false; sGoal(); setTimeout(() => finishFind('maze', Z.mist, 'הכדור הגיע לשער!'), 500); }
+    if (r === MR - 1 && c === MC - 1) { Z.down = false; Z.over = true; sGoal(); setTimeout(() => finishFind('maze', 0, 'הכדור הגיע לשער!'), 500); }
   } else {
-    Z.mist++; $('zMist').textContent = '❌ ' + Z.mist; sMiss(); t.classList.add('bad', 'shake'); setTimeout(() => t.classList.remove('bad', 'shake'), 500);
+    Z.over = true; Z.down = false; sMiss(); t.classList.add('bad', 'shake'); // one wrong step ends the game
+    const zr = Z; setTimeout(() => { if (Z === zr) failMaze(); }, 800);
   }
 }
 
@@ -1629,14 +1644,23 @@ function wsPlace(words){ // returns { grid, spots } or null; words may cross whe
     if (!ok) return null;
   }
   for (let r = 0; r < WSN; r++) for (let c = 0; c < WSN; c++) if (!grid[r][c]) grid[r][c] = ALPHA[Math.random() * 26 | 0];
+  // every word must appear exactly once (also backwards), so random letters can't spell a second copy
+  const lines = [...grid.map(row => row.join('')), ...grid[0].map((_, c) => grid.map(row => row[c]).join(''))];
+  const count = (str) => lines.reduce((n, ln) => { let i = -1, k = 0; while ((i = ln.indexOf(str, i + 1)) >= 0) k++; return n + k; }, 0);
+  for (const { w } of spots) { const rv = [...w].reverse().join(''); if (count(w) + (rv !== w ? count(rv) : 0) !== 1) return null; }
   return { grid, spots };
 }
 function startWSearch(){
-  const list = picWords().filter(w => /^[A-Za-z]{3,6}$/.test(w.word)), words = pickPics(smartOrder(list), 5);
+  const list = picWords().filter(w => /^[A-Za-z]{3,6}$/.test(w.word)), words = [], keys = new Set();
+  for (const w of smartOrder(list)) { // 5 separate words: none may be part of another (e.g. 'man' with 'woman'), pictures all different
+    const u = w.word.toUpperCase();
+    if (keys.has(picKey(w)) || words.some(x => x.word.toUpperCase().includes(u) || u.includes(x.word.toUpperCase()))) continue;
+    keys.add(picKey(w)); words.push(w); if (words.length === 5) break;
+  }
   if (words.length < 5) { toast('צריך לפחות 5 מילים עם תמונה'); return; }
-  let pl = null; for (let t = 0; t < 20 && !pl; t++) pl = wsPlace(words.map(w => w.word.toUpperCase()));
+  let pl = null; for (let t = 0; t < 80 && !pl; t++) pl = wsPlace(words.map(w => w.word.toUpperCase()));
   if (!pl) { toast('לא הצלחנו לבנות תפזורת, נסו שוב'); return; }
-  WS = { words: words.map(w => ({ w, up: w.word.toUpperCase(), found: false })), grid: pl.grid, mist: 0, found: 0, sel: [], anchor: null, down: false };
+  WS = { words: words.map(w => ({ w, up: w.word.toUpperCase(), found: false, spot: pl.spots.find(sp => sp.w === w.word.toUpperCase()).cells.map(x => x.join(',')).join(';') })), grid: pl.grid, mist: 0, found: 0, sel: [], anchor: null, down: false };
   const lst = $('wsList'); lst.textContent = '';
   WS.words.forEach(x => {
     const b = document.createElement('button'); b.className = 'wsc'; b.appendChild(picNode(x.w)); b.appendChild(mk('span', '', x.up)); // same capital letters as the grid
@@ -1668,13 +1692,13 @@ function wsRelease(end){
 }
 function wsCheck(cells){
   if (cells.length < 2) return;
-  const str = cells.map(c => c.textContent).join(''), rev = [...str].reverse().join('');
-  const hit = WS.words.find(x => !x.found && (x.up === str || x.up === rev));
-  if (hit) {
+  const pos = cells.map(c => c.dataset.r + ',' + c.dataset.c), fwd = pos.join(';'), bwd = pos.slice().reverse().join(';');
+  const hit = WS.words.find(x => x.spot === fwd || x.spot === bwd); // only the word's own place in the grid counts
+  if (hit && !hit.found) {
     hit.found = true; WS.found++; cells.forEach(c => c.classList.add('fnd')); hit.el.classList.add('done'); $('wsLeft').textContent = WS.found + '/5';
     noteWord(hit.w.word, true); sGoal(); wsPop(hit.w, WS.found === 5);
     setTimeout(() => speak(hit.w.word), 350); // spoken after the pop sound; iOS can drop speech started in the same instant
-  } else if (!WS.words.some(x => x.found && (x.up === str || x.up === rev))) { // an already found word is ignored, anything else is a mistake
+  } else if (!hit) { // an already found word is ignored, anything else is a mistake
     WS.mist++; sMiss(); cells.forEach(c => c.classList.add('shake')); setTimeout(() => cells.forEach(c => c.classList.remove('shake')), 500);
   }
 }
